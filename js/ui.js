@@ -20,7 +20,7 @@ const renderCars = () => {
       : '';
 
     return `
-      <div class="car-card" data-vin="${car.vin}">
+      <div class="car-card" data-role="car-card" data-vin="${car.vin}">
         <div class="car-vin"><span class="car-vin-prefix">VIN:</span> ${car.vin}</div>
         <div class="car-info-text">${car.brand} ${car.model}, ${car.color}, ${car.year}</div>
         <div class="links-row">
