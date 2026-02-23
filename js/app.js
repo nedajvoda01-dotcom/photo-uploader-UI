@@ -24,10 +24,10 @@ const stickyHeaderEl = document.getElementById('stickyHeader');
  * behind the sticky header.
  */
 function adjustContentOffset() {
-  if (!stickyHeaderEl || !carsGrid) return;
+  if (!stickyHeaderEl) return;
   const headerHeight = stickyHeaderEl.offsetHeight;
   document.documentElement.style.setProperty('--header-height', headerHeight + 'px');
-  carsGrid.style.marginTop = headerHeight + 'px';
+  // sticky header is in normal flow in split view; no margin offset needed
 }
 
 window.addEventListener('resize', adjustContentOffset);
@@ -282,12 +282,6 @@ document.getElementById('loginForm').addEventListener('submit', function(event) 
 });
 
 // ======= INIT: guard runs before any UI =======
-// Initialise --drawer-offset immediately so body padding is correct
-document.documentElement.style.setProperty(
-  '--drawer-offset',
-  isNarrowScreen() ? '0px' : `${SNAP_HANDLE_PX}px`
-);
-
 const _initSession = getSession();
 if (!_initSession) {
   showLogin();
