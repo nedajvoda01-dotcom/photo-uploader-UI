@@ -765,7 +765,7 @@ width: 760px; /* default on desktop; JS может переопределять 
       const filterCars = () => {
         return window.CARS_DATA.filter(car => {
           if (activeFilter && car.filter !== activeFilter) return false;
-          if (activeStatus && car.status !== activeStatus) return false;
+          if (activeStatus && (car.status || 'actual') !== activeStatus) return false;
           if (activeCondition && car.condition !== activeCondition) return false;
 
           if (searchQuery) {
