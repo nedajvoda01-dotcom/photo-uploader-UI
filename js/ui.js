@@ -1,3 +1,6 @@
+// ======= UI: card rendering =======
+const carsGrid = document.getElementById('carsGrid');
+
 const getRandomLinks = () => {
   const links = [];
   if (Math.random() < 0.33) links.push('Видео');
