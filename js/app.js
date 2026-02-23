@@ -300,6 +300,7 @@ const drawerResizer = document.getElementById('drawerResizer');
 const DRAWER_WIDTH_KEY = 'drawerWidthPx';
 const MAX_DRAWER_VW = 95; // max drawer width as % of viewport
 const SNAP_HANDLE_PX = 20;   // S0: visible handle width when drawer is closed (must match --drawer-offset default in CSS)
+const SNAP_THRESHOLD = 10;   // px: symmetric dead-zone before snapping to next/prev state
 const CARD_MIN_WIDTH = 300;  // minmax(300px, 1fr) from CSS
 const GRID_GAP = 24;         // gap: var(--space-unit)
 const BODY_SIDE_PAD = 24;    // padding: var(--page-pad)
@@ -477,7 +478,20 @@ function onResizeMove(e) {
 
   // drawer is on the right: width = windowWidth - cursor position
   const nextWidth = window.innerWidth - clientX;
-  const targetSnap = nearestSnap(nextWidth);
+
+  // Symmetric threshold-based snap: switch to the next/prev snap only after
+  // crossing SNAP_THRESHOLD px past the current snap position (same in both directions).
+  const snaps = getSnapWidths();
+  const currentIdx = snaps.findIndex(s => Math.abs(s - _dragSnapPx) < 1);
+  const idx = currentIdx >= 0 ? currentIdx : snaps.findIndex(s => Math.abs(s - nearestSnap(_dragSnapPx)) < 1);
+  if (idx < 0) return;
+
+  let targetSnap = _dragSnapPx;
+  if (nextWidth > _dragSnapPx + SNAP_THRESHOLD && idx < snaps.length - 1) {
+    targetSnap = snaps[idx + 1];
+  } else if (nextWidth < _dragSnapPx - SNAP_THRESHOLD && idx > 0) {
+    targetSnap = snaps[idx - 1];
+  }
 
   // Only act when the nearest snap changes — this produces the "step" feel
   if (targetSnap === _dragSnapPx) return;
