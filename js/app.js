@@ -297,242 +297,190 @@ const drawerOverlay = document.getElementById('drawerOverlay');
 const drawerClose = document.getElementById('drawerClose');
 const drawerResizer = document.getElementById('drawerResizer');
 
-const DRAWER_WIDTH_KEY = 'drawerWidthPx';
-const MAX_DRAWER_VW = 95; // max drawer width as % of viewport
-const SNAP_HANDLE_PX = 20;   // S0: visible handle width when drawer is closed (must match --drawer-offset default in CSS)
-const SNAP_THRESHOLD = 10;   // px: symmetric dead-zone before snapping to next/prev state
-const CARD_MIN_WIDTH = 300;  // minmax(300px, 1fr) from CSS
-const GRID_GAP = 24;         // gap: var(--space-unit)
-const BODY_SIDE_PAD = 24;    // padding: var(--page-pad)
+// ======= DRAWER STATE MACHINE =======
+/*
+ * Discrete snap states (index 0–3):
+ *   S0 (index 0): closed — handle only (20 px visible, no .open class)
+ *   S1 (index 1): narrowest open — 3 card columns visible
+ *   S2 (index 2): medium open    — 2 card columns visible
+ *   S3 (index 3): widest open    — 1 card column visible
+ *
+ * Events:
+ *   click handle (when closed) → openDrawer()
+ *   drag handle (when open)    → switch state index by threshold
+ *   drag end                   → finalise current index
+ *   Esc / Close / overlay      → closeDrawer() → index 0
+ *
+ * Anti-jitter: asymmetric thresholds (DRAG_THRESHOLD_FWD to advance,
+ *   DRAG_THRESHOLD_BWD to retreat) with anchor reset on each switch
+ *   provide built-in hysteresis — no "sawing" at boundaries.
+ */
 
-let isResizing = false;
-let _dragSnapPx = SNAP_HANDLE_PX; // tracks snap position during drag
+const SNAP_HANDLE_PX = 20;     // S0 visible handle width (must match --drawer-offset in CSS)
+const CARD_MIN_WIDTH = 300;    // minmax(300px, 1fr) from CSS
+const GRID_GAP = 24;           // gap: var(--space-unit)
+const BODY_SIDE_PAD = 24;      // padding: var(--page-pad)
+const DRAG_THRESHOLD_FWD = 12; // px to advance to next wider state (enter)
+const DRAG_THRESHOLD_BWD = 18; // px to retreat to previous state (exit / hysteresis)
+
+// Grid CSS class applied at each state index ('' = closed, no class).
+// Note: the CSS suffix number equals the column count, not the index —
+// index 1 (narrowest open) allows 3 columns → 'drawer-state-s3', etc.
+const GRID_PRESET = ['', 'drawer-state-s3', 'drawer-state-s2', 'drawer-state-s1'];
+
+// Single source of truth — only the index is stored, never a raw pixel width
+const drawerState = { index: 0 };
+
+// Drag tracking
+let isDragging = false;
+let dragAnchorX = 0;
 
 /**
- * Returns the valid discrete snap widths for the drawer in the current viewport.
- * Ordered smallest → largest (S0, then S3, S2, S1 where available).
- *   S0 = SNAP_HANDLE_PX (handle-only, drawer is closed via CSS transform)
- *   S3 = widest drawer where 3 card columns still fit
- *   S2 = widest drawer where 2 card columns still fit
- *   S1 = widest drawer where 1 card column still fit
+ * Compute snap point in px for each state index [0..3] based on current viewport.
+ *   SNAP_POINTS[0] = SNAP_HANDLE_PX (S0, handle-only)
+ *   SNAP_POINTS[1] = narrowest open  (S1, leaves room for 3 card columns)
+ *   SNAP_POINTS[2] = medium open     (S2, leaves room for 2 card columns)
+ *   SNAP_POINTS[3] = widest open     (S3, leaves room for 1 card column)
  */
-function getSnapWidths() {
+function getSnapPoints() {
   const vw = window.innerWidth;
-  const snaps = [SNAP_HANDLE_PX]; // S0 is always present
-
-  // Available content width = vw - 2*bodyPad - drawerWidth
-  // For N columns: content >= N*CARD_MIN_WIDTH + (N-1)*GRID_GAP
-  // → drawerWidth = vw - 2*BODY_SIDE_PAD - (N*CARD_MIN_WIDTH + (N-1)*GRID_GAP)
-  const colWidths = [
-    vw - 2 * BODY_SIDE_PAD - (3 * CARD_MIN_WIDTH + 2 * GRID_GAP), // S3
-    vw - 2 * BODY_SIDE_PAD - (2 * CARD_MIN_WIDTH + GRID_GAP),     // S2
-    vw - 2 * BODY_SIDE_PAD - CARD_MIN_WIDTH,                       // S1
+  return [
+    SNAP_HANDLE_PX,                                                 // S0
+    vw - 2 * BODY_SIDE_PAD - (3 * CARD_MIN_WIDTH + 2 * GRID_GAP), // S1 (3 cols)
+    vw - 2 * BODY_SIDE_PAD - (2 * CARD_MIN_WIDTH + GRID_GAP),     // S2 (2 cols)
+    vw - 2 * BODY_SIDE_PAD - CARD_MIN_WIDTH,                       // S3 (1 col)
   ];
+}
 
-  for (const w of colWidths) {
-    if (w > SNAP_HANDLE_PX) snaps.push(w);
+/**
+ * Returns the highest valid index given current viewport width.
+ * Indices whose snap point is ≤ SNAP_HANDLE_PX have no room and are skipped.
+ */
+function getMaxIndex() {
+  const snaps = getSnapPoints();
+  let max = 0;
+  for (let i = 1; i < snaps.length; i++) {
+    if (snaps[i] > SNAP_HANDLE_PX) max = i;
+  }
+  return max;
+}
+
+/**
+ * applyLayout(index) — the single function that applies width + grid preset.
+ * Called only when the state index changes; never invoked per-pixel during drag.
+ */
+function applyLayout(index) {
+  const snaps = getSnapPoints();
+  const isOpen = index > 0;
+  const narrow = isNarrowScreen();
+
+  // 1. Open / close visual state
+  if (isOpen) {
+    drawer.classList.add('open');
+    drawer.setAttribute('aria-hidden', 'false');
+    drawerOverlay.classList.add('visible');
+    drawerOverlay.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('drawer-open');
+  } else {
+    drawer.classList.remove('open');
+    drawer.setAttribute('aria-hidden', 'true');
+    drawerOverlay.classList.remove('visible');
+    drawerOverlay.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('drawer-open');
   }
 
-  return snaps.sort((a, b) => a - b);
-}
+  // 2. Width + body padding offset
+  if (narrow) {
+    if (isOpen) drawer.style.width = '100vw';
+    document.documentElement.style.setProperty('--drawer-offset', '0px');
+  } else if (isOpen) {
+    const maxPx = Math.floor(window.innerWidth * 0.95);
+    const snapPx = Math.min(Math.max(snaps[index], SNAP_HANDLE_PX + 1), maxPx);
+    drawer.style.width = `${snapPx}px`;
+    document.documentElement.style.setProperty('--drawer-offset', `${snapPx}px`);
+  } else {
+    document.documentElement.style.setProperty('--drawer-offset', `${SNAP_HANDLE_PX}px`);
+  }
 
-/** Returns the snap point nearest to px. */
-function nearestSnap(px) {
-  const snaps = getSnapWidths();
-  return snaps.reduce((best, s) => Math.abs(s - px) < Math.abs(best - px) ? s : best, snaps[0]);
-}
-
-/**
- * Applies a body CSS class (drawer-state-s1/s2/s3) that matches the snap index,
- * so the car grid switches to the correct column count at each snap position.
- * The number of columns equals (snaps.length - snapIndex):
- *   last snap (widest drawer)  → 1 column  → drawer-state-s1
- *   second-last               → 2 columns → drawer-state-s2
- *   third-last (if present)   → 3 columns → drawer-state-s3
- */
-function applyDrawerState(snapPx) {
+  // 3. Grid column class — cards rebuild only when index changes, not per-pixel
   document.body.classList.remove('drawer-state-s1', 'drawer-state-s2', 'drawer-state-s3');
-  if (snapPx <= SNAP_HANDLE_PX) return;
-  const snaps = getSnapWidths();
-  const idx = snaps.findIndex(s => Math.abs(s - snapPx) < 1);
-  if (idx < 0) return;
-  document.body.classList.add(`drawer-state-s${snaps.length - idx}`);
+  if (GRID_PRESET[index]) document.body.classList.add(GRID_PRESET[index]);
 }
 
-/**
- * Default open width: prefer S2 (2 columns), fall back to whatever is available.
- */
-function getDefaultDrawerWidth() {
-  const open = getSnapWidths().filter(s => s > SNAP_HANDLE_PX);
-  // open is [S3?, S2?, S1?] sorted ascending; pick S2 (index -2) or the largest available
-  return open.length >= 2 ? open[open.length - 2] : (open[open.length - 1] || SNAP_HANDLE_PX);
-}
-
-// Path to the HTML file used to populate the drawer iframe.  Loading
-// an external file keeps this script short and eliminates the need to
-// inline massive base64-encoded HTML content (which can easily break
-// during editing). When the drawer is opened, we set the iframe's
-// src attribute to this value.
+// Path to the HTML file used to populate the drawer iframe.
 const DRAWER_SRC = 'page2_fixed_page1_additional_FINAL_v9_no_bg_content_archive_headers.htm';
 
 function isNarrowScreen() {
   return window.matchMedia('(max-width: 600px)').matches;
 }
 
-function clamp(v, min, max) {
-  return Math.min(Math.max(v, min), max);
-}
-
-function applyDrawerWidth(px) {
-  if (isNarrowScreen()) {
-    drawer.style.width = '100vw';
-    document.documentElement.style.setProperty('--drawer-offset', '0px');
-    return;
-  }
-  const maxPx = Math.floor(window.innerWidth * (MAX_DRAWER_VW / 100));
-  // Allow widths down to just above the handle so the user can drag toward S0
-  const safePx = clamp(px, SNAP_HANDLE_PX + 1, maxPx);
-  drawer.style.width = `${safePx}px`;
-  document.documentElement.style.setProperty('--drawer-offset', `${safePx}px`);
-}
-
-function loadDrawerWidth() {
-  const stored = parseInt(localStorage.getItem(DRAWER_WIDTH_KEY) || '', 10);
-  const base = (Number.isFinite(stored) && stored > 0) ? stored : getDefaultDrawerWidth();
-  // Always snap to a valid discrete position
-  const snapped = nearestSnap(base);
-  return snapped > SNAP_HANDLE_PX ? snapped : getDefaultDrawerWidth();
-}
-
-function saveDrawerWidth(px) {
-  if (isNarrowScreen()) return; // на узком не сохраняем
-  localStorage.setItem(DRAWER_WIDTH_KEY, String(px));
-}
-
 function openDrawer() {
   const drawerIframe = document.getElementById('drawerIframe');
-  // Always load our external page into the iframe when opening the drawer.  Using
-  // a separate HTML file via the DRAWER_SRC constant keeps this script
-  // manageable and avoids inlining massive base64 strings that can break parsing.
-  if (drawerIframe && drawerIframe.src !== DRAWER_SRC) {
-    drawerIframe.src = DRAWER_SRC;
-  }
-
-  // ширина при открытии — snap to nearest valid discrete position
-  const targetWidth = loadDrawerWidth();
-  applyDrawerWidth(targetWidth);
-  applyDrawerState(targetWidth);
-
-  drawer.classList.add('open');
-  drawer.setAttribute('aria-hidden', 'false');
-  drawerOverlay.classList.add('visible');
-  drawerOverlay.setAttribute('aria-hidden', 'false');
-  // Fix card widths to 300 px while the drawer is open so cards never
-  // resize during drag or snap — the whole grid block shifts left instead.
-  document.body.classList.add('drawer-open');
+  if (drawerIframe && drawerIframe.src !== DRAWER_SRC) drawerIframe.src = DRAWER_SRC;
+  // Default open state: prefer index 2 (S2 / 2 columns), fall back to max available
+  const maxIdx = getMaxIndex();
+  const targetIdx = maxIdx >= 2 ? 2 : maxIdx;
+  drawerState.index = targetIdx;
+  applyLayout(targetIdx);
 }
 
 function closeDrawer() {
-  drawer.classList.remove('open');
-  drawer.setAttribute('aria-hidden', 'true');
-  drawerOverlay.classList.remove('visible');
-  drawerOverlay.setAttribute('aria-hidden', 'true');
-  document.body.classList.remove('drawer-open');
-  document.body.classList.remove('drawer-state-s1', 'drawer-state-s2', 'drawer-state-s3');
-  // Reset offset so body padding shrinks back to handle-only (20 px on desktop, 0 on mobile)
-  document.documentElement.style.setProperty(
-    '--drawer-offset',
-    isNarrowScreen() ? '0px' : `${SNAP_HANDLE_PX}px`
-  );
+  drawerState.index = 0;
+  applyLayout(0);
 }
 
 drawerClose.addEventListener('click', closeDrawer);
 drawerOverlay.addEventListener('click', closeDrawer);
 
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && drawer.classList.contains('open')) {
-    closeDrawer();
-  }
+  if (e.key === 'Escape' && drawerState.index > 0) closeDrawer();
 });
 
-// ресайз (только десктоп/широкий)
+// ======= DRAG = STATE SWITCHER (not pixel-by-pixel resize) =======
 function onResizeStart(e) {
   if (isNarrowScreen()) return;
-  if (!drawer.classList.contains('open')) {
+  if (drawerState.index === 0) {
+    // Tap/click on handle while closed → open drawer
     openDrawer();
     return;
   }
   e.preventDefault();
   e.stopPropagation();
-  isResizing = true;
+  isDragging = true;
   document.body.style.userSelect = 'none';
-  // Record current snap so we detect when the nearest snap changes
-  const currentWidth = parseInt(getComputedStyle(drawer).width, 10);
-  _dragSnapPx = nearestSnap(Number.isFinite(currentWidth) ? currentWidth : loadDrawerWidth());
+  dragAnchorX = (e.touches && e.touches[0]) ? e.touches[0].clientX : e.clientX;
 }
 
 function onResizeMove(e) {
-  if (!isResizing) return;
+  if (!isDragging) return;
   const clientX = (e.touches && e.touches[0]) ? e.touches[0].clientX : e.clientX;
   if (typeof clientX !== 'number') return;
 
-  // drawer is on the right: width = windowWidth - cursor position
-  const nextWidth = window.innerWidth - clientX;
+  // Cursor moved LEFT  (delta > 0) → drawer widens → higher index
+  // Cursor moved RIGHT (delta < 0) → drawer narrows → lower index
+  const delta = dragAnchorX - clientX;
+  const maxIdx = getMaxIndex();
+  const cur = drawerState.index;
 
-  // Symmetric threshold-based snap: switch to the next/prev snap only after
-  // crossing SNAP_THRESHOLD px past the current snap position (same in both directions).
-  const snaps = getSnapWidths();
-  const currentIdx = snaps.findIndex(s => Math.abs(s - _dragSnapPx) < 1);
-  const idx = currentIdx >= 0 ? currentIdx : snaps.findIndex(s => Math.abs(s - nearestSnap(_dragSnapPx)) < 1);
-  if (idx < 0) return;
-
-  let targetSnap = _dragSnapPx;
-  if (nextWidth > _dragSnapPx + SNAP_THRESHOLD && idx < snaps.length - 1) {
-    targetSnap = snaps[idx + 1];
-  } else if (nextWidth < _dragSnapPx - SNAP_THRESHOLD && idx > 0) {
-    targetSnap = snaps[idx - 1];
-  }
-
-  // Only act when the nearest snap changes — this produces the "step" feel
-  if (targetSnap === _dragSnapPx) return;
-  _dragSnapPx = targetSnap;
-
-  if (targetSnap <= SNAP_HANDLE_PX) {
-    // Animate toward closed — keep isResizing so the user can drag back
-    drawer.classList.remove('open');
-    drawer.setAttribute('aria-hidden', 'true');
-    document.documentElement.style.setProperty('--drawer-offset', `${SNAP_HANDLE_PX}px`);
-    document.body.classList.remove('drawer-state-s1', 'drawer-state-s2', 'drawer-state-s3');
-  } else {
-    // Re-open if we dragged back from S0
-    if (!drawer.classList.contains('open')) {
-      drawer.classList.add('open');
-      drawer.setAttribute('aria-hidden', 'false');
-    }
-    applyDrawerWidth(targetSnap);
-    applyDrawerState(targetSnap);
+  if (delta > DRAG_THRESHOLD_FWD && cur < maxIdx) {
+    drawerState.index = cur + 1;
+    applyLayout(drawerState.index);
+    dragAnchorX = clientX; // reset anchor for hysteresis
+  } else if (delta < -DRAG_THRESHOLD_BWD && cur > 0) {
+    drawerState.index = cur - 1;
+    applyLayout(drawerState.index);
+    dragAnchorX = clientX; // reset anchor for hysteresis
+    // Note: isDragging stays true even when reaching index 0 (closed) so the
+    // user can drag back left to reopen — symmetric step feel in both directions.
   }
 }
 
 function onResizeEnd() {
-  if (!isResizing) return;
-  isResizing = false;
+  if (!isDragging) return;
+  isDragging = false;
   document.body.style.userSelect = '';
-
-  // Drawer is already at the last snapped position; finalise the state
-  if (_dragSnapPx <= SNAP_HANDLE_PX) {
-    closeDrawer();
-  } else {
-    // Ensure overlay and body class are set (they may have been cleared during drag to S0)
-    if (!drawerOverlay.classList.contains('visible')) {
-      drawerOverlay.classList.add('visible');
-      drawerOverlay.setAttribute('aria-hidden', 'false');
-      document.body.classList.add('drawer-open');
-    }
-    applyDrawerWidth(_dragSnapPx);
-    applyDrawerState(_dragSnapPx);
-    saveDrawerWidth(_dragSnapPx);
-  }
+  // State already committed during drag; re-apply to ensure final layout is clean
+  applyLayout(drawerState.index);
 }
 
 if (drawerResizer) {
@@ -544,25 +492,12 @@ window.addEventListener('touchmove', onResizeMove, { passive: false });
 window.addEventListener('mouseup', onResizeEnd);
 window.addEventListener('touchend', onResizeEnd);
 
-// при смене размера окна — подгоняем ширину под ограничения
+// On viewport resize: clamp to max valid index and re-apply layout
 window.addEventListener('resize', () => {
-  if (!drawer.classList.contains('open')) {
-    // Keep handle offset correct (0 on mobile, SNAP_HANDLE_PX on desktop)
-    document.documentElement.style.setProperty(
-      '--drawer-offset',
-      isNarrowScreen() ? '0px' : `${SNAP_HANDLE_PX}px`
-    );
-    return;
-  }
-  // Re-snap to nearest valid point for new viewport width
-  const current = parseInt(getComputedStyle(drawer).width, 10);
-  const snap = nearestSnap(Number.isFinite(current) ? current : loadDrawerWidth());
-  if (snap <= SNAP_HANDLE_PX) {
-    closeDrawer();
-  } else {
-    applyDrawerWidth(snap);
-    applyDrawerState(snap);
-  }
+  const maxIdx = getMaxIndex();
+  const newIdx = Math.min(drawerState.index, maxIdx);
+  if (newIdx !== drawerState.index) drawerState.index = newIdx;
+  applyLayout(drawerState.index);
 });
 
 // ======= FULLSCREEN PHOTO VIEWER HANDLERS =======
