@@ -46,11 +46,8 @@
 
   --module-height: 42px;
 
-  /* width of the visible drawer portion at any given moment:
-     20 px = handle-only (S0/closed), or the full open width (S1-S3).
-     JS keeps this in sync; CSS transitions animate the content shift.
-     NOTE: this default value must match SNAP_HANDLE_PX in js/app.js. */
-  --drawer-offset: 20px;
+  /* split view handle visual reference (see #splitHandle in CSS) */
+  --drawer-offset: 0px;
 }
 
 html, body { height: 100%; width: 100%; overflow: hidden; }
@@ -435,8 +432,6 @@ body {
   overflow: hidden;
 }
 
-/* ручка ресайза / handle — удалена, заменена на #splitHandle */
-
 /* На узких экранах — обе панели в стеке */
 @media (max-width: 600px) {
   #splitRoot { flex-direction: column; }
@@ -445,8 +440,6 @@ body {
   #rightPane { flex: 0 0 50vh; width: 100%; max-width: 100%; }
 }
 
-
-        
 /* ======= STICKY HEADER (inside left pane scroll container) ======= */
 .sticky-header {
   position: sticky;
