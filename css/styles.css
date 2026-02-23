@@ -141,7 +141,6 @@ body {
 .admin-text {
   font-size:16px; font-weight:var(--inter-regular); color:var(--text-tertiary);
   transition:all .15s ease; line-height: var(--module-height);
-  display: none; /* надпись скрыта */
 }
 .logout-module {
   height: var(--module-height); background: var(--black-custom);
