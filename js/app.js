@@ -1,13 +1,72 @@
 // ======= AUTH =======
-const AUTH_KEY = 'isAuth';
-const ROLE_KEY = 'userRole'; // 'admin' or 'photographer'
-const ALLOWED_FILTER_KEY = 'allowedFilter'; // e.g. 'p1', 'p2', 'p3', … (photographers only)
+const SESSION_KEY = 'session';
 
 const loginOverlay = document.getElementById('loginOverlay');
+const appRoot = document.getElementById('appRoot');
 const loginInput = document.getElementById('loginInput');
 const passwordInput = document.getElementById('passwordInput');
 const errorMessage = document.getElementById('errorMessage');
 const loginButton = document.getElementById('loginButton');
+
+function getSession() {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    const s = JSON.parse(raw);
+    if (!s || !s.user || !s.role) return null;
+    return s;
+  } catch(e) {
+    return null;
+  }
+}
+
+function setSession(user, role, allowedFilter) {
+  localStorage.setItem(SESSION_KEY, JSON.stringify({
+    user, role, allowedFilter: allowedFilter || null, loginAt: Date.now()
+  }));
+}
+
+function clearSession() {
+  localStorage.removeItem(SESSION_KEY);
+}
+
+function isAuthed() {
+  return getSession() !== null;
+}
+
+function getRole() {
+  const s = getSession();
+  return s ? s.role : '';
+}
+
+function getAllowedFilter() {
+  const s = getSession();
+  return s ? s.allowedFilter : null;
+}
+
+function normalizeLoginValue(v) {
+  return (v || '').trim().toUpperCase();
+}
+
+// Маппинг логина фотографа (латиница) → ключ фильтра
+const ROLE_TO_FILTER = {
+  'P1': 'p1',
+  'P2': 'p2',
+  'P3': 'p3',
+  'K1': 'k1',
+  'V':  'v',
+  'S1': 's1',
+  'S2': 's2',
+};
+
+/**
+ * Returns the Latin filter key for a photographer login, or null if not recognised.
+ * @param {string} normalizedLogin - Uppercase Latin login (e.g. 'P1', 'K1', 'V').
+ * @returns {string|null} Filter key (e.g. 'p1') or null.
+ */
+function getPhotographerFilter(normalizedLogin) {
+  return ROLE_TO_FILTER[normalizedLogin] || null;
+}
 
 function removeErrorState() {
   loginInput.classList.remove('error', 'success');
@@ -17,6 +76,7 @@ function removeErrorState() {
 }
 
 function showLogin() {
+  appRoot.style.display = 'none';
   loginOverlay.classList.add('visible');
   loginOverlay.setAttribute('aria-hidden', 'false');
   removeErrorState();
@@ -27,58 +87,10 @@ function showLogin() {
 function hideLogin() {
   loginOverlay.classList.remove('visible');
   loginOverlay.setAttribute('aria-hidden', 'true');
+  appRoot.style.display = 'flex';
   removeErrorState();
   loginInput.value = '';
   passwordInput.value = '';
-}
-
-function isAuthed() {
-  return localStorage.getItem(AUTH_KEY) === 'true';
-}
-
-function setAuthed(v) {
-  localStorage.setItem(AUTH_KEY, v ? 'true' : 'false');
-}
-
-function setRole(role) {
-  localStorage.setItem(ROLE_KEY, role);
-}
-
-function getRole() {
-  return localStorage.getItem(ROLE_KEY) || '';
-}
-
-function normalizeLoginValue(v) {
-  return (v || '').trim().toUpperCase();
-}
-
-// Маппинг логина фотографа (кириллица) → ключ фильтра
-const ROLE_TO_FILTER = {
-  'Р1': 'p1',
-  'Р2': 'p2',
-  'Р3': 'p3',
-  'К1': 'k1',
-  'В':  'v',
-  'С1': 's1',
-  'С2': 's2',
-};
-
-/**
- * Returns the Latin filter key for a photographer login, or null if not recognised.
- * @param {string} normalizedLogin - Uppercase Cyrillic login (e.g. 'Р1', 'К1', 'В').
- * @returns {string|null} Filter key (e.g. 'p1') or null.
- */
-function getPhotographerFilter(normalizedLogin) {
-  return ROLE_TO_FILTER[normalizedLogin] || null;
-}
-
-function setAllowedFilter(f) {
-  if (f) localStorage.setItem(ALLOWED_FILTER_KEY, f);
-  else localStorage.removeItem(ALLOWED_FILTER_KEY);
-}
-
-function getAllowedFilter() {
-  return localStorage.getItem(ALLOWED_FILTER_KEY);
 }
 
 
@@ -122,9 +134,8 @@ let searchQuery = '';
 let logoutModule = null;
 
 
-function applyRoleRestrictions() {
-  const role = getRole(); // 'admin' or 'photographer'
-  const isAdmin = role === 'admin';
+function applyAccessControl(session) {
+  const isAdmin = session && session.role === 'admin';
 
   // подпись справа
   // надпись скрыта, меняем только иконку
@@ -133,13 +144,15 @@ function applyRoleRestrictions() {
   const buttons = Array.from(document.querySelectorAll('.filter-capsule-btn'));
 
   if (isAdmin) {
+    adminWrapper.style.display = '';
     // разблокируем все
     buttons.forEach(b => { b.disabled = false; });
     return;
   }
 
   // роль фотографа: фиксируем один фильтр и блокируем остальные
-  const fixedFilter = getAllowedFilter(); // p1/p2/…
+  adminWrapper.style.display = 'none';
+  const fixedFilter = session ? session.allowedFilter : null;
   activeFilter = fixedFilter;
 
   buttons.forEach(b => {
@@ -160,10 +173,9 @@ function createLogoutModule() {
 
   module.addEventListener('click', (e) => {
     e.stopPropagation();
-    setAuthed(false);
-    localStorage.removeItem(ROLE_KEY);
-    localStorage.removeItem(ALLOWED_FILTER_KEY);
+    clearSession();
     hideLogoutModule();
+    resetUIToDefaults();
     showLogin();
   });
 
@@ -180,6 +192,18 @@ function hideLogoutModule() {
   if (!logoutModule) return;
   logoutModule.remove();
   logoutModule = null;
+}
+
+function resetUIToDefaults() {
+  activeFilter = null;
+  activeStatus = 'actual';
+  activeCondition = 'new';
+  searchQuery = '';
+  searchInput.value = '';
+  document.querySelectorAll('.filter-capsule-btn').forEach(b => { b.classList.remove('active'); b.disabled = false; });
+  document.querySelectorAll('.status-capsule-btn').forEach(b => b.classList.toggle('active', b.dataset.status === 'actual'));
+  document.querySelectorAll('.condition-capsule-btn').forEach(b => b.classList.toggle('active', b.dataset.condition === 'new'));
+  adminWrapper.style.display = '';
 }
 
 function toggleLogoutModule() {
@@ -274,8 +298,8 @@ conditionCapsule.addEventListener('click', handleConditionClick);
 carsGrid.addEventListener('click', handleCarClick);
 
 renderCars();
-// Apply role restrictions (admin vs photographer)
-applyRoleRestrictions();
+// Apply access control (admin vs photographer)
+applyAccessControl(getSession());
 // Re-render because photographer forces a filter
 renderCars();
 // After rendering the cars, adjust the content offset once.
@@ -445,7 +469,8 @@ window.addEventListener('message', (e) => {
 });
 
 // ======= LOGIN HANDLERS =======
-loginButton.addEventListener('click', function() {
+document.getElementById('loginForm').addEventListener('submit', function(event) {
+  event.preventDefault();
   const login = loginInput.value.trim();
   const password = passwordInput.value.trim();
 
@@ -457,9 +482,7 @@ loginButton.addEventListener('click', function() {
     const photographerFilter = getPhotographerFilter(normLogin);
 
     if (isAdminLogin || photographerFilter) {
-      setAuthed(true);
-      setRole(isAdminLogin ? 'admin' : 'photographer');
-      setAllowedFilter(isAdminLogin ? null : photographerFilter);
+      setSession(login, isAdminLogin ? 'admin' : 'photographer', isAdminLogin ? null : photographerFilter);
 
       // SUCCESS UI: подсветка + задержка
       loginInput.classList.add('success');
@@ -467,7 +490,7 @@ loginButton.addEventListener('click', function() {
       loginButton.disabled = true;
 
       // применяем роль сразу
-      applyRoleRestrictions();
+      applyAccessControl(getSession());
       renderCars();
 
       setTimeout(() => {
@@ -495,18 +518,11 @@ loginButton.addEventListener('click', function() {
 });
 
 // ======= INIT: всегда просим вход, если нет флага =======
-if (!isAuthed()) showLogin();
-else {
-  const role = getRole();
-  if (role !== 'admin' && (role !== 'photographer' || !getAllowedFilter())) {
-    // недействительная / устаревшая сессия — принудительный повторный вход
-    setAuthed(false);
-    localStorage.removeItem(ROLE_KEY);
-    localStorage.removeItem(ALLOWED_FILTER_KEY);
-    showLogin();
-  } else {
-    hideLogin();
-    applyRoleRestrictions();
-    renderCars();
-  }
+const _initSession = getSession();
+if (!_initSession) {
+  showLogin();
+} else {
+  hideLogin();
+  applyAccessControl(_initSession);
+  renderCars();
 }
