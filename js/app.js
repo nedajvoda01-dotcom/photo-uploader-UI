@@ -407,6 +407,9 @@ function openDrawer() {
   drawer.setAttribute('aria-hidden', 'false');
   drawerOverlay.classList.add('visible');
   drawerOverlay.setAttribute('aria-hidden', 'false');
+  // Fix card widths to 300 px while the drawer is open so cards never
+  // resize during drag or snap — the whole grid block shifts left instead.
+  document.body.classList.add('drawer-open');
 }
 
 function closeDrawer() {
@@ -414,6 +417,7 @@ function closeDrawer() {
   drawer.setAttribute('aria-hidden', 'true');
   drawerOverlay.classList.remove('visible');
   drawerOverlay.setAttribute('aria-hidden', 'true');
+  document.body.classList.remove('drawer-open');
   // Reset offset so body padding shrinks back to handle-only (20 px on desktop, 0 on mobile)
   document.documentElement.style.setProperty(
     '--drawer-offset',
@@ -441,6 +445,9 @@ function onResizeStart(e) {
   e.stopPropagation();
   isResizing = true;
   document.body.style.userSelect = 'none';
+  // Disable body padding transition during drag so the content follows
+  // the cursor instantly without any CSS-transition lag.
+  document.body.style.transition = 'none';
 }
 
 function onResizeMove(e) {
@@ -457,6 +464,8 @@ function onResizeEnd() {
   if (!isResizing) return;
   isResizing = false;
   document.body.style.userSelect = '';
+  // Restore the transition so the snap-to-position animation plays smoothly.
+  document.body.style.transition = '';
 
   // Snap to the nearest discrete position
   const current = parseInt(getComputedStyle(drawer).width, 10);

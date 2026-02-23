@@ -204,6 +204,11 @@ body {
   display:grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: var(--space-unit); margin-top: var(--space-unit);
 }
+/* When the drawer is open fix card width to 300 px so cards never resize
+   while dragging or snapping — the whole grid block shifts left instead. */
+body.drawer-open .cars-grid {
+  grid-template-columns: repeat(auto-fill, 300px);
+}
 .car-card {
   background:var(--white); border-radius: var(--radius-lg); padding:20px;
   border:1px solid var(--border-light); box-shadow: var(--shadow-sm);
