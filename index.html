@@ -53,13 +53,13 @@
 
   <!-- ======= ОВЕРЛЕЙ ВХОДА ======= -->
   <div class="login-overlay" id="loginOverlay" aria-hidden="true">
-    <div class="login-card" id="loginForm" role="dialog" aria-modal="true" aria-label="Вход">
+    <form class="login-card" id="loginForm" role="dialog" aria-modal="true" aria-label="Вход" novalidate>
       <input type="text" class="input-field login-field" id="loginInput" placeholder="Логин" inputmode="text" autocomplete="off">
       <input type="password" class="input-field password-field" id="passwordInput" placeholder="Пароль" inputmode="text" autocomplete="off">
 
       <div class="error-message" id="errorMessage">Неверный логин или пароль.</div>
-<button class="login-button" id="loginButton">Войти</button>
-    </div>
+<button class="login-button" id="loginButton" type="submit">Войти</button>
+    </form>
   </div>
 
   
