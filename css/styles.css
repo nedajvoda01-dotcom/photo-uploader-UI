@@ -173,14 +173,12 @@ body {
 @media (max-width:900px) and (min-width:601px) {
   .header-row { display:flex; flex-direction:row; flex-wrap:wrap; align-items:center; }
   .search-wrapper { order:1; flex: 1 1 calc(100% - 140px); }
-  .admin-wrapper { order:1; flex:0 0 auto; }
   .status-capsule { order:2; flex: 1 1 calc(50% - 8px); min-width:140px; }
   .filter-capsule { order:2; flex: 1 1 calc(50% - 8px); min-width:200px; }
 }
 @media (max-width:600px) {
   .header-row { display:flex; flex-direction:row; flex-wrap:wrap; gap:12px; }
   .search-wrapper { order:1; flex: 1 1 calc(100% - 140px); }
-  .admin-wrapper { order:1; flex:0 0 auto; }
   .status-capsule { order:2; flex:1 1 100%; }
   .filter-capsule { order:3; flex:1 1 100%; }
 }
@@ -376,10 +374,15 @@ width: 760px; /* default on desktop; JS может переопределять 
   height: 56px;
   display: flex;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: space-between;
   padding: 0 16px;
   border-bottom: 1px solid var(--border-light);
   background: var(--gray-100);
+}
+
+.drawer-header-actions {
+  display: flex;
+  align-items: center;
 }
 
 .drawer-close {
