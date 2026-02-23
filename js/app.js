@@ -137,21 +137,27 @@ let logoutModule = null;
 function applyAccessControl(session) {
   const isAdmin = session && session.role === 'admin';
 
-  // подпись справа
-  // надпись скрыта, меняем только иконку
-  avatar.innerHTML = isAdmin ? `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M11.219 3.375L8 7.399L4.781 3.375A1.002 1.002 0 0 0 3 4v15c0 1.103.897 2 2 2h14c1.103 0 2-.897 2-2V4a1.002 1.002 0 0 0-1.781-.625L16 7.399l-3.219-4.024c-.381-.474-1.181-.474-1.562 0M5 19v-2h14.001v2zm10.219-9.375c.381.475 1.182.475 1.563 0L19 6.851L19.001 15H5V6.851l2.219 2.774c.381.475 1.182.475 1.563 0L12 5.601z"/></svg>` : `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 8c-2.168 0-4 1.832-4 4s1.832 4 4 4s4-1.832 4-4s-1.832-4-4-4m0 6c-1.065 0-2-.935-2-2s.935-2 2-2s2 .935 2 2s-.935 2-2 2"/><path fill="currentColor" d="M20 5h-2.586l-2.707-2.707A.996.996 0 0 0 14 2h-4a.996.996 0 0 0-.707.293L6.586 5H4c-1.103 0-2 .897-2 2v11c0 1.103.897 2 2 2h16c1.103 0 2-.897 2-2V7c0-1.103-.897-2-2-2M4 18V7h3c.266 0 .52-.105.707-.293L10.414 4h3.172l2.707 2.707A.996.996 0 0 0 17 7h3l.002 11z"/></svg>`;
+  // иконка зависит от роли: корона — admin, фотоаппарат — photographer
+  avatar.innerHTML = isAdmin
+    ? `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M11.219 3.375L8 7.399L4.781 3.375A1.002 1.002 0 0 0 3 4v15c0 1.103.897 2 2 2h14c1.103 0 2-.897 2-2V4a1.002 1.002 0 0 0-1.781-.625L16 7.399l-3.219-4.024c-.381-.474-1.181-.474-1.562 0M5 19v-2h14.001v2zm10.219-9.375c.381.475 1.182.475 1.563 0L19 6.851L19.001 15H5V6.851l2.219 2.774c.381.475 1.182.475 1.563 0L12 5.601z"/></svg>`
+    : `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 8c-2.168 0-4 1.832-4 4s1.832 4 4 4s4-1.832 4-4s-1.832-4-4-4m0 6c-1.065 0-2-.935-2-2s.935-2 2-2s2 .935 2 2s-.935 2-2 2"/><path fill="currentColor" d="M20 5h-2.586l-2.707-2.707A.996.996 0 0 0 14 2h-4a.996.996 0 0 0-.707.293L6.586 5H4c-1.103 0-2 .897-2 2v11c0 1.103.897 2 2 2h16c1.103 0 2-.897 2-2V7c0-1.103-.897-2-2-2M4 18V7h3c.266 0 .52-.105.707-.293L10.414 4h3.172l2.707 2.707A.996.996 0 0 0 17 7h3l.002 11z"/></svg>`;
+
+  // текст: "ADMIN" или логин фотографа
+  adminText.textContent = isAdmin ? 'ADMIN' : (session ? session.user : '');
+
+  // шапка всегда видима, кнопка выхода всегда присутствует
+  adminWrapper.style.display = '';
+  showLogoutModule();
 
   const buttons = Array.from(document.querySelectorAll('.filter-capsule-btn'));
 
   if (isAdmin) {
-    adminWrapper.style.display = '';
     // разблокируем все
     buttons.forEach(b => { b.disabled = false; });
     return;
   }
 
   // роль фотографа: фиксируем один фильтр и блокируем остальные
-  adminWrapper.style.display = 'none';
   const fixedFilter = session ? session.allowedFilter : null;
   activeFilter = fixedFilter;
 
@@ -206,29 +212,12 @@ function resetUIToDefaults() {
   adminWrapper.style.display = '';
 }
 
-function toggleLogoutModule() {
-  if (logoutModule) hideLogoutModule();
-  else showLogoutModule();
-}
-
 document.addEventListener('click', (e) => {
   const linkItem = e.target.closest('.link-item');
   if (linkItem) {
     e.stopPropagation();
     alert(`Переход по ссылке: ${linkItem.textContent}`);
-    return;
   }
-
-  if (logoutModule && !adminWrapper.contains(e.target)) hideLogoutModule();
-});
-
-avatar.addEventListener('click', (e) => {
-  e.stopPropagation();
-  toggleLogoutModule();
-});
-
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && logoutModule) hideLogoutModule();
 });
 
 const handleFilterClick = (e) => {
