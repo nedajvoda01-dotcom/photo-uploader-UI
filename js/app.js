@@ -377,9 +377,13 @@ document.addEventListener('keydown', (e) => {
 // ресайз (только десктоп/широкий)
 function onResizeStart(e) {
   if (isNarrowScreen()) return;
-  isResizing = true;
+  if (!drawer.classList.contains('open')) {
+    openDrawer();
+    return;
+  }
   e.preventDefault();
   e.stopPropagation();
+  isResizing = true;
   document.body.style.userSelect = 'none';
 }
 
