@@ -352,7 +352,7 @@ width: 760px; /* default on desktop; JS может переопределять 
   max-width: 100vw;
   background: var(--gray-100); /* как фон системы */
   border-left: 1px solid var(--border-light);
-  transform: translateX(100%);
+  transform: translateX(calc(100% - 20px)); /* 20px handle visible when closed */
   transition: transform 0.22s ease;
   z-index: 9100;
 
@@ -414,26 +414,29 @@ width: 760px; /* default on desktop; JS может переопределять 
   overflow: auto;
 }
 
-/* ручка ресайза */
+/* ручка ресайза / handle */
 .drawer-resizer {
   position: absolute;
   left: 0;
   top: 0;
   height: 100%;
-  width: 10px;              /* зона захвата */
-  cursor: col-resize;
+  width: 20px;              /* покрывает всю полоску-хвостик */
+  cursor: pointer;          /* в свёрнутом виде — открыть */
   touch-action: none;
+}
+.drawer.open .drawer-resizer {
+  cursor: col-resize;       /* в открытом виде — изменить ширину */
 }
 .drawer-resizer::after {
   content: "";
   position: absolute;
-  left: 4px;
+  left: 8px;
   top: 50%;
   transform: translateY(-50%);
   width: 2px;
   height: 80px;
   border-radius: 2px;
-  background: rgba(26, 26, 26, 0.12);
+  background: rgba(26, 26, 26, 0.18);
 }
 
 /* На узких экранах — на весь экран и без ресайза */
@@ -441,6 +444,9 @@ width: 760px; /* default on desktop; JS может переопределять 
   .drawer {
     width: 100vw !important;
     max-width: 100vw;
+  }
+  .drawer:not(.open) {
+    transform: translateX(100%); /* без хвостика на мобильных */
   }
   .drawer-resizer {
     display: none;
