@@ -6,6 +6,11 @@ const getRandomLinks = () => {
 };
 
 const renderCars = () => {
+  if (!window.CARS_DATA || !Array.isArray(window.CARS_DATA)) {
+    carsGrid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--gray-500);">Ошибка: данные об автомобилях не загружены. Проверьте файл данных.</div>';
+    return;
+  }
+
   const filteredCars = filterCars();
 
   if (filteredCars.length === 0) {
@@ -19,10 +24,16 @@ const renderCars = () => {
       ? `<div class="links-items">${car.links.map(link => `<span class="link-item">${link}</span>`).join('')}</div>`
       : '';
 
+    const priceFormatted = car.price ? car.price.toLocaleString('ru-RU') + ' ₽' : '';
+    const engineInfo = [car.engineVolume, car.horsepower ? car.horsepower + ' л.с.' : '', car.drive, car.gearbox].filter(Boolean).join(' · ');
+
     return `
       <div class="car-card" data-role="car-card" data-vin="${car.vin}">
         <div class="car-vin"><span class="car-vin-prefix">VIN:</span> ${car.vin}</div>
-        <div class="car-info-text">${car.brand} ${car.model}, ${car.color}, ${car.year}</div>
+        <div class="car-info-text">${car.brand} ${car.model}${car.trim ? ', ' + car.trim : ''}, ${car.color}, ${car.year}</div>
+        ${engineInfo ? `<div class="car-info-text">${engineInfo}</div>` : ''}
+        ${car.interiorType ? `<div class="car-info-text">${car.interiorType}</div>` : ''}
+        ${priceFormatted ? `<div class="car-price">${priceFormatted}</div>` : ''}
         <div class="links-row">
           <span class="links-label">Ссылки:</span>
           ${linksHtml}
