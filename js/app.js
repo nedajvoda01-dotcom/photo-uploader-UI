@@ -298,11 +298,56 @@ const drawerClose = document.getElementById('drawerClose');
 const drawerResizer = document.getElementById('drawerResizer');
 
 const DRAWER_WIDTH_KEY = 'drawerWidthPx';
-const MIN_DRAWER_PX = 760;
-const DEFAULT_DRAWER_PX = 760;
-const MAX_DRAWER_VW = 100; // можно перекрывать весь экран
+const MAX_DRAWER_VW = 95; // max drawer width as % of viewport
+const SNAP_HANDLE_PX = 20;   // S0: visible handle width when drawer is closed (must match --drawer-offset default in CSS)
+const CARD_MIN_WIDTH = 300;  // minmax(300px, 1fr) from CSS
+const GRID_GAP = 24;         // gap: var(--space-unit)
+const BODY_SIDE_PAD = 24;    // padding: var(--page-pad)
 
 let isResizing = false;
+
+/**
+ * Returns the valid discrete snap widths for the drawer in the current viewport.
+ * Ordered smallest → largest (S0, then S3, S2, S1 where available).
+ *   S0 = SNAP_HANDLE_PX (handle-only, drawer is closed via CSS transform)
+ *   S3 = widest drawer where 3 card columns still fit
+ *   S2 = widest drawer where 2 card columns still fit
+ *   S1 = widest drawer where 1 card column still fit
+ */
+function getSnapWidths() {
+  const vw = window.innerWidth;
+  const snaps = [SNAP_HANDLE_PX]; // S0 is always present
+
+  // Available content width = vw - 2*bodyPad - drawerWidth
+  // For N columns: content >= N*CARD_MIN_WIDTH + (N-1)*GRID_GAP
+  // → drawerWidth = vw - 2*BODY_SIDE_PAD - (N*CARD_MIN_WIDTH + (N-1)*GRID_GAP)
+  const colWidths = [
+    vw - 2 * BODY_SIDE_PAD - (3 * CARD_MIN_WIDTH + 2 * GRID_GAP), // S3
+    vw - 2 * BODY_SIDE_PAD - (2 * CARD_MIN_WIDTH + GRID_GAP),     // S2
+    vw - 2 * BODY_SIDE_PAD - CARD_MIN_WIDTH,                       // S1
+  ];
+
+  for (const w of colWidths) {
+    if (w > SNAP_HANDLE_PX) snaps.push(w);
+  }
+
+  return snaps.sort((a, b) => a - b);
+}
+
+/** Returns the snap point nearest to px. */
+function nearestSnap(px) {
+  const snaps = getSnapWidths();
+  return snaps.reduce((best, s) => Math.abs(s - px) < Math.abs(best - px) ? s : best, snaps[0]);
+}
+
+/**
+ * Default open width: prefer S2 (2 columns), fall back to whatever is available.
+ */
+function getDefaultDrawerWidth() {
+  const open = getSnapWidths().filter(s => s > SNAP_HANDLE_PX);
+  // open is [S3?, S2?, S1?] sorted ascending; pick S2 (index -2) or the largest available
+  return open.length >= 2 ? open[open.length - 2] : (open[open.length - 1] || SNAP_HANDLE_PX);
+}
 
 // Path to the HTML file used to populate the drawer iframe.  Loading
 // an external file keeps this script short and eliminates the need to
@@ -322,17 +367,22 @@ function clamp(v, min, max) {
 function applyDrawerWidth(px) {
   if (isNarrowScreen()) {
     drawer.style.width = '100vw';
+    document.documentElement.style.setProperty('--drawer-offset', '0px');
     return;
   }
   const maxPx = Math.floor(window.innerWidth * (MAX_DRAWER_VW / 100));
-  const safePx = clamp(px, MIN_DRAWER_PX, maxPx);
+  // Allow widths down to just above the handle so the user can drag toward S0
+  const safePx = clamp(px, SNAP_HANDLE_PX + 1, maxPx);
   drawer.style.width = `${safePx}px`;
+  document.documentElement.style.setProperty('--drawer-offset', `${safePx}px`);
 }
 
 function loadDrawerWidth() {
   const stored = parseInt(localStorage.getItem(DRAWER_WIDTH_KEY) || '', 10);
-  if (!Number.isFinite(stored) || stored <= 0) return DEFAULT_DRAWER_PX;
-  return stored;
+  const base = (Number.isFinite(stored) && stored > 0) ? stored : getDefaultDrawerWidth();
+  // Always snap to a valid discrete position
+  const snapped = nearestSnap(base);
+  return snapped > SNAP_HANDLE_PX ? snapped : getDefaultDrawerWidth();
 }
 
 function saveDrawerWidth(px) {
@@ -349,8 +399,9 @@ function openDrawer() {
     drawerIframe.src = DRAWER_SRC;
   }
 
-  // ширина при открытии
-  applyDrawerWidth(loadDrawerWidth());
+  // ширина при открытии — snap to nearest valid discrete position
+  const targetWidth = loadDrawerWidth();
+  applyDrawerWidth(targetWidth);
 
   drawer.classList.add('open');
   drawer.setAttribute('aria-hidden', 'false');
@@ -363,6 +414,11 @@ function closeDrawer() {
   drawer.setAttribute('aria-hidden', 'true');
   drawerOverlay.classList.remove('visible');
   drawerOverlay.setAttribute('aria-hidden', 'true');
+  // Reset offset so body padding shrinks back to handle-only (20 px on desktop, 0 on mobile)
+  document.documentElement.style.setProperty(
+    '--drawer-offset',
+    isNarrowScreen() ? '0px' : `${SNAP_HANDLE_PX}px`
+  );
 }
 
 drawerClose.addEventListener('click', closeDrawer);
@@ -402,9 +458,18 @@ function onResizeEnd() {
   isResizing = false;
   document.body.style.userSelect = '';
 
-  // сохранить текущую ширину
+  // Snap to the nearest discrete position
   const current = parseInt(getComputedStyle(drawer).width, 10);
-  if (Number.isFinite(current)) saveDrawerWidth(current);
+  if (!Number.isFinite(current)) return;
+
+  const snap = nearestSnap(current);
+  if (snap <= SNAP_HANDLE_PX) {
+    // Snap to S0: close the drawer (CSS transform shows only the handle)
+    closeDrawer();
+  } else {
+    applyDrawerWidth(snap);
+    saveDrawerWidth(snap);
+  }
 }
 
 if (drawerResizer) {
@@ -418,8 +483,22 @@ window.addEventListener('touchend', onResizeEnd);
 
 // при смене размера окна — подгоняем ширину под ограничения
 window.addEventListener('resize', () => {
-  if (!drawer.classList.contains('open')) return;
-  applyDrawerWidth(loadDrawerWidth());
+  if (!drawer.classList.contains('open')) {
+    // Keep handle offset correct (0 on mobile, SNAP_HANDLE_PX on desktop)
+    document.documentElement.style.setProperty(
+      '--drawer-offset',
+      isNarrowScreen() ? '0px' : `${SNAP_HANDLE_PX}px`
+    );
+    return;
+  }
+  // Re-snap to nearest valid point for new viewport width
+  const current = parseInt(getComputedStyle(drawer).width, 10);
+  const snap = nearestSnap(Number.isFinite(current) ? current : loadDrawerWidth());
+  if (snap <= SNAP_HANDLE_PX) {
+    closeDrawer();
+  } else {
+    applyDrawerWidth(snap);
+  }
 });
 
 // ======= FULLSCREEN PHOTO VIEWER HANDLERS =======
@@ -506,6 +585,13 @@ document.getElementById('loginForm').addEventListener('submit', function(event) 
 });
 
 // ======= INIT: проверяем сессию до запуска UI =======
+// Initialise --drawer-offset immediately so the body padding is correct
+// even before the drawer is ever opened.
+document.documentElement.style.setProperty(
+  '--drawer-offset',
+  isNarrowScreen() ? '0px' : `${SNAP_HANDLE_PX}px`
+);
+
 const _initSession = getSession();
 if (!_initSession) {
   showLogin();
