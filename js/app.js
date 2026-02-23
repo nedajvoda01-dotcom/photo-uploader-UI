@@ -305,6 +305,7 @@ const GRID_GAP = 24;         // gap: var(--space-unit)
 const BODY_SIDE_PAD = 24;    // padding: var(--page-pad)
 
 let isResizing = false;
+let _dragSnapPx = SNAP_HANDLE_PX; // tracks snap position during drag
 
 /**
  * Returns the valid discrete snap widths for the drawer in the current viewport.
@@ -338,6 +339,23 @@ function getSnapWidths() {
 function nearestSnap(px) {
   const snaps = getSnapWidths();
   return snaps.reduce((best, s) => Math.abs(s - px) < Math.abs(best - px) ? s : best, snaps[0]);
+}
+
+/**
+ * Applies a body CSS class (drawer-state-s1/s2/s3) that matches the snap index,
+ * so the car grid switches to the correct column count at each snap position.
+ * The number of columns equals (snaps.length - snapIndex):
+ *   last snap (widest drawer)  → 1 column  → drawer-state-s1
+ *   second-last               → 2 columns → drawer-state-s2
+ *   third-last (if present)   → 3 columns → drawer-state-s3
+ */
+function applyDrawerState(snapPx) {
+  document.body.classList.remove('drawer-state-s1', 'drawer-state-s2', 'drawer-state-s3');
+  if (snapPx <= SNAP_HANDLE_PX) return;
+  const snaps = getSnapWidths();
+  const idx = snaps.findIndex(s => Math.abs(s - snapPx) < 1);
+  if (idx < 0) return;
+  document.body.classList.add(`drawer-state-s${snaps.length - idx}`);
 }
 
 /**
@@ -402,6 +420,7 @@ function openDrawer() {
   // ширина при открытии — snap to nearest valid discrete position
   const targetWidth = loadDrawerWidth();
   applyDrawerWidth(targetWidth);
+  applyDrawerState(targetWidth);
 
   drawer.classList.add('open');
   drawer.setAttribute('aria-hidden', 'false');
@@ -418,6 +437,7 @@ function closeDrawer() {
   drawerOverlay.classList.remove('visible');
   drawerOverlay.setAttribute('aria-hidden', 'true');
   document.body.classList.remove('drawer-open');
+  document.body.classList.remove('drawer-state-s1', 'drawer-state-s2', 'drawer-state-s3');
   // Reset offset so body padding shrinks back to handle-only (20 px on desktop, 0 on mobile)
   document.documentElement.style.setProperty(
     '--drawer-offset',
@@ -445,9 +465,9 @@ function onResizeStart(e) {
   e.stopPropagation();
   isResizing = true;
   document.body.style.userSelect = 'none';
-  // Disable body padding transition during drag so the content follows
-  // the cursor instantly without any CSS-transition lag.
-  document.body.style.transition = 'none';
+  // Record current snap so we detect when the nearest snap changes
+  const currentWidth = parseInt(getComputedStyle(drawer).width, 10);
+  _dragSnapPx = nearestSnap(Number.isFinite(currentWidth) ? currentWidth : loadDrawerWidth());
 }
 
 function onResizeMove(e) {
@@ -455,29 +475,49 @@ function onResizeMove(e) {
   const clientX = (e.touches && e.touches[0]) ? e.touches[0].clientX : e.clientX;
   if (typeof clientX !== 'number') return;
 
-  // drawer справа: ширина = windowWidth - clientX
+  // drawer is on the right: width = windowWidth - cursor position
   const nextWidth = window.innerWidth - clientX;
-  applyDrawerWidth(nextWidth);
+  const targetSnap = nearestSnap(nextWidth);
+
+  // Only act when the nearest snap changes — this produces the "step" feel
+  if (targetSnap === _dragSnapPx) return;
+  _dragSnapPx = targetSnap;
+
+  if (targetSnap <= SNAP_HANDLE_PX) {
+    // Animate toward closed — keep isResizing so the user can drag back
+    drawer.classList.remove('open');
+    drawer.setAttribute('aria-hidden', 'true');
+    document.documentElement.style.setProperty('--drawer-offset', `${SNAP_HANDLE_PX}px`);
+    document.body.classList.remove('drawer-state-s1', 'drawer-state-s2', 'drawer-state-s3');
+  } else {
+    // Re-open if we dragged back from S0
+    if (!drawer.classList.contains('open')) {
+      drawer.classList.add('open');
+      drawer.setAttribute('aria-hidden', 'false');
+    }
+    applyDrawerWidth(targetSnap);
+    applyDrawerState(targetSnap);
+  }
 }
 
 function onResizeEnd() {
   if (!isResizing) return;
   isResizing = false;
   document.body.style.userSelect = '';
-  // Restore the transition so the snap-to-position animation plays smoothly.
-  document.body.style.transition = '';
 
-  // Snap to the nearest discrete position
-  const current = parseInt(getComputedStyle(drawer).width, 10);
-  if (!Number.isFinite(current)) return;
-
-  const snap = nearestSnap(current);
-  if (snap <= SNAP_HANDLE_PX) {
-    // Snap to S0: close the drawer (CSS transform shows only the handle)
+  // Drawer is already at the last snapped position; finalise the state
+  if (_dragSnapPx <= SNAP_HANDLE_PX) {
     closeDrawer();
   } else {
-    applyDrawerWidth(snap);
-    saveDrawerWidth(snap);
+    // Ensure overlay and body class are set (they may have been cleared during drag to S0)
+    if (!drawerOverlay.classList.contains('visible')) {
+      drawerOverlay.classList.add('visible');
+      drawerOverlay.setAttribute('aria-hidden', 'false');
+      document.body.classList.add('drawer-open');
+    }
+    applyDrawerWidth(_dragSnapPx);
+    applyDrawerState(_dragSnapPx);
+    saveDrawerWidth(_dragSnapPx);
   }
 }
 
@@ -507,6 +547,7 @@ window.addEventListener('resize', () => {
     closeDrawer();
   } else {
     applyDrawerWidth(snap);
+    applyDrawerState(snap);
   }
 });
 

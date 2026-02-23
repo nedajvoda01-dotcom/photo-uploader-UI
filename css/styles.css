@@ -209,6 +209,11 @@ body {
 body.drawer-open .cars-grid {
   grid-template-columns: repeat(auto-fill, 300px);
 }
+/* Explicit column counts for each discrete snap state so the grid regroups
+   only when the drawer jumps to a new snap position, not pixel-by-pixel. */
+body.drawer-state-s3 .cars-grid { grid-template-columns: repeat(3, 300px); }
+body.drawer-state-s2 .cars-grid { grid-template-columns: repeat(2, 300px); }
+body.drawer-state-s1 .cars-grid { grid-template-columns: repeat(1, 300px); }
 .car-card {
   background:var(--white); border-radius: var(--radius-lg); padding:20px;
   border:1px solid var(--border-light); box-shadow: var(--shadow-sm);
@@ -367,7 +372,7 @@ width: 760px; /* default on desktop; JS может переопределять 
   background: var(--gray-100); /* как фон системы */
   border-left: 1px solid var(--border-light);
   transform: translateX(calc(100% - 20px)); /* 20px handle visible when closed */
-  transition: transform 0.22s ease;
+  transition: transform 0.22s ease, width 0.22s ease;
   z-index: 9100;
 
   display: flex;
