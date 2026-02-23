@@ -13,7 +13,7 @@
 <!-- ======= МЕНЮ ======= -->
   <div class="main-container" id="appRoot">
     <div class="sticky-header" id="stickyHeader">
-            <div class="header-row">
+            <div class="header-row" id="headerRow">
       <div class="status-capsule" id="statusCapsule">
         <button class="status-capsule-btn active" data-status="actual">Актуальные</button>
         <button class="status-capsule-btn" data-status="archive">Архив</button>
@@ -53,7 +53,7 @@
 
   <!-- ======= ОВЕРЛЕЙ ВХОДА ======= -->
   <div class="login-overlay" id="loginOverlay" aria-hidden="true">
-    <div class="login-card" role="dialog" aria-modal="true" aria-label="Вход">
+    <div class="login-card" id="loginForm" role="dialog" aria-modal="true" aria-label="Вход">
       <input type="text" class="input-field login-field" id="loginInput" placeholder="Логин" inputmode="text" autocomplete="off">
       <input type="password" class="input-field password-field" id="passwordInput" placeholder="Пароль" inputmode="text" autocomplete="off">
 
