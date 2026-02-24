@@ -55,19 +55,47 @@
     <div id="splitHandle" title="Потяни, чтобы изменить ширину"></div>
 
     <!-- RIGHT PANE: detail view / iframe -->
-    <div id="rightPane">
-      <div class="drawer-inner">
-        <div class="drawer-header">
-          <button class="drawer-close" id="rightPaneCollapseBtn">Свернуть</button>
-          <div class="drawer-header-actions" id="drawerHeaderActions">
-            <div class="admin-wrapper" id="adminWrapper">
-              <span class="admin-text" id="adminText"></span>
-              <div class="avatar" id="avatar" role="button" tabindex="0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 8c-2.168 0-4 1.832-4 4s1.832 4 4 4s4-1.832 4-4s-1.832-4-4-4m0 6c-1.065 0-2-.935-2-2s.935-2 2-2s2 .935 2 2s-.935 2-2 2"/><path fill="currentColor" d="M20 5h-2.586l-2.707-2.707A.996.996 0 0 0 14 2h-4a.996.996 0 0 0-.707.293L6.586 5H4c-1.103 0-2 .897-2 2v11c0 1.103.897 2 2 2h16c1.103 0 2-.897 2-2V7c0-1.103-.897-2-2-2M4 18V7h3c.266 0 .52-.105.707-.293L10.414 4h3.172l2.707 2.707A.996.996 0 0 0 17 7h3l.002 11z"/></svg></div>
+    <!--
+      ================================================================
+      ПРАВАЯ ПАНЕЛЬ -- карта блоков и правила безопасного редактирования
+      ================================================================
+      Адресация блоков ТОЛЬКО по data-role или id.
+      Нельзя обращаться по вложенности или случайным классам.
+
+      Открытие/закрытие:
+        expandRightPane()   -- открыть (drawer.js)
+        collapseRightPane() -- свернуть (drawer.js)
+        openDrawer()        -- загрузить iframe (drawer.js)
+
+      Событие открытия: клик по .car-card -> handleCarClick() (app.js)
+        -> expandRightPane() + openDrawer()
+
+      Данные в iframe: захардкожены в DRAWER_DATA_URL (drawer.js)
+      Роль пользователя: getRole() / getSession() (auth.js)
+      ================================================================
+    -->
+    <div id="rightPane" data-role="right-pane">
+      <!-- data-role="right-pane-inner" — внутренняя обёртка всей панели -->
+      <div class="drawer-inner" data-role="right-pane-inner">
+        <!-- data-role="right-pane-header" — шапка: кнопка "Свернуть" + профиль/выход -->
+        <div class="drawer-header" data-role="right-pane-header">
+          <!-- data-role="right-pane-collapse-btn" — кнопка «Свернуть», вешает collapseRightPane() -->
+          <button class="drawer-close" id="rightPaneCollapseBtn" data-role="right-pane-collapse-btn">Свернуть</button>
+          <!-- data-role="right-pane-header-actions" — правый блок шапки (профиль, выход) -->
+          <div class="drawer-header-actions" id="drawerHeaderActions" data-role="right-pane-header-actions">
+            <!-- data-role="right-pane-user-block" — блок пользователя (лейбл + аватар) -->
+            <div class="admin-wrapper" id="adminWrapper" data-role="right-pane-user-block">
+              <!-- data-role="right-pane-user-label" — текст "ADMIN" или логин фотографа -->
+              <span class="admin-text" id="adminText" data-role="right-pane-user-label"></span>
+              <!-- data-role="right-pane-avatar" — иконка-аватар; SVG меняется в applyAccessControl() -->
+              <div class="avatar" id="avatar" data-role="right-pane-avatar" role="button" tabindex="0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 8c-2.168 0-4 1.832-4 4s1.832 4 4 4s4-1.832 4-4s-1.832-4-4-4m0 6c-1.065 0-2-.935-2-2s.935-2 2-2s2 .935 2 2s-.935 2-2 2"/><path fill="currentColor" d="M20 5h-2.586l-2.707-2.707A.996.996 0 0 0 14 2h-4a.996.996 0 0 0-.707.293L6.586 5H4c-1.103 0-2 .897-2 2v11c0 1.103.897 2 2 2h16c1.103 0 2-.897 2-2V7c0-1.103-.897-2-2-2M4 18V7h3c.266 0 .52-.105.707-.293L10.414 4h3.172l2.707 2.707A.996.996 0 0 0 17 7h3l.002 11z"/></svg></div>
             </div>
           </div>
         </div>
-        <div class="drawer-content" id="drawerContent">
-          <iframe id="drawerIframe" class="drawer-iframe" title="Карточка автомобиля"></iframe>
+        <!-- data-role="right-pane-content" — область содержимого (iframe) -->
+        <div class="drawer-content" id="drawerContent" data-role="right-pane-content">
+          <!-- data-role="right-pane-iframe" — iframe с карточкой авто; src = DRAWER_DATA_URL (drawer.js) -->
+          <iframe id="drawerIframe" class="drawer-iframe" data-role="right-pane-iframe" title="Карточка автомобиля"></iframe>
         </div>
       </div>
     </div><!-- /#rightPane -->

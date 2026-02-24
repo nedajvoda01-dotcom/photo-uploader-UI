@@ -201,7 +201,7 @@ const handleCarClick = (e) => {
     localStorage.setItem('lastSelectedVin', vin);
   }
   expandRightPane();
-  openDrawer();
+  openDrawer(vin);
 };
 
 filterCapsule.addEventListener('click', handleFilterClick);
