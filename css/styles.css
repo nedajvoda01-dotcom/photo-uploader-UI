@@ -67,7 +67,8 @@ body {
 #splitRoot {
   display: flex;
   width: 100vw;
-  height: 100vh;
+  height: calc(100vh - var(--header-height));
+  margin-top: var(--header-height);
   overflow: hidden;
 }
 
@@ -438,11 +439,15 @@ body {
   #rightPane { flex: 0 0 50vh; width: 100%; max-width: 100%; }
 }
 
-/* ======= STICKY HEADER (inside left pane — independent from scroll) ======= */
+/* ======= STICKY HEADER (independent fixed layer above both panels) ======= */
 .sticky-header {
-  flex: 0 0 auto;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
 
-  background: #E5E5E5; /* match #leftPane background */
+  background: var(--gray-100);
 
   /* content padding */
   padding-top: 20px;

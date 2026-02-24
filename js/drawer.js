@@ -15,6 +15,7 @@ const RIGHT_PANE_DEFAULT = 600;
 let isDragging = false;
 let dragStartX = 0;
 let dragStartRightWidth = 0;
+let currentRightPaneWidth = RIGHT_PANE_DEFAULT;
 
 function isNarrowScreen() {
   return window.matchMedia('(max-width: 600px)').matches;
@@ -28,56 +29,59 @@ function getRightPaneMaxWidth() {
 
 function setRightPaneWidth(width) {
   if (!rightPane) return;
-  const min = RIGHT_PANE_MIN;
   const max = getRightPaneMaxWidth();
-  const clamped = Math.max(min, Math.min(max, width));
-  rightPane.style.width = clamped + 'px';
-  rightPane.style.flex = '0 0 ' + clamped + 'px';
+  if (width >= RIGHT_PANE_MIN) {
+    // Normal range: clamp to [RIGHT_PANE_MIN, max]
+    const clamped = Math.min(max, width);
+    rightPane.style.width = clamped + 'px';
+    rightPane.style.flex = '0 0 ' + clamped + 'px';
+    rightPane.style.transform = 'translateX(0)';
+    currentRightPaneWidth = clamped;
+  } else {
+    // Below min-width: keep panel at RIGHT_PANE_MIN and slide it off-screen to the right
+    const offset = Math.min(RIGHT_PANE_MIN, RIGHT_PANE_MIN - width);
+    rightPane.style.width = RIGHT_PANE_MIN + 'px';
+    rightPane.style.flex = '0 0 ' + RIGHT_PANE_MIN + 'px';
+    rightPane.style.transform = 'translateX(' + offset + 'px)';
+    currentRightPaneWidth = width;
+  }
 }
 
-if (splitHandle) {
-  splitHandle.addEventListener('mousedown', function(e) {
-    e.preventDefault();
-    isDragging = true;
-    dragStartX = e.clientX;
-    dragStartRightWidth = rightPane ? rightPane.offsetWidth : RIGHT_PANE_DEFAULT;
-    document.body.style.userSelect = 'none';
-    document.body.style.cursor = 'col-resize';
-  });
-  splitHandle.addEventListener('touchstart', function(e) {
-    isDragging = true;
-    dragStartX = e.touches[0].clientX;
-    dragStartRightWidth = rightPane ? rightPane.offsetWidth : RIGHT_PANE_DEFAULT;
-    document.body.style.userSelect = 'none';
-  }, { passive: false });
-}
-
-window.addEventListener('mousemove', function(e) {
+function onSplitPointerMove(e) {
   if (!isDragging) return;
   const dx = dragStartX - e.clientX; // positive dx = drag left = right pane wider
   setRightPaneWidth(dragStartRightWidth + dx);
-});
-window.addEventListener('touchmove', function(e) {
-  if (!isDragging) return;
-  e.preventDefault();
-  const dx = dragStartX - e.touches[0].clientX;
-  setRightPaneWidth(dragStartRightWidth + dx);
-}, { passive: false });
-window.addEventListener('mouseup', function() {
-  if (isDragging) {
-    isDragging = false;
-    document.body.style.userSelect = '';
-    document.body.style.cursor = '';
+}
+
+function stopSplitDrag(e) {
+  isDragging = false;
+  document.body.style.userSelect = '';
+  document.body.style.cursor = '';
+  if (splitHandle) {
+    splitHandle.releasePointerCapture(e.pointerId);
+    splitHandle.removeEventListener('pointermove', onSplitPointerMove);
+    splitHandle.removeEventListener('pointerup', stopSplitDrag);
+    splitHandle.removeEventListener('pointercancel', stopSplitDrag);
   }
-});
-window.addEventListener('touchend', function() {
-  if (isDragging) {
-    isDragging = false;
-    document.body.style.userSelect = '';
-  }
-});
+}
+
+if (splitHandle) {
+  splitHandle.addEventListener('pointerdown', function(e) {
+    e.preventDefault();
+    isDragging = true;
+    dragStartX = e.clientX;
+    dragStartRightWidth = currentRightPaneWidth;
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'col-resize';
+    splitHandle.setPointerCapture(e.pointerId);
+    splitHandle.addEventListener('pointermove', onSplitPointerMove);
+    splitHandle.addEventListener('pointerup', stopSplitDrag);
+    splitHandle.addEventListener('pointercancel', stopSplitDrag);
+  });
+}
+
 window.addEventListener('resize', function() {
-  if (rightPane) setRightPaneWidth(rightPane.offsetWidth);
+  if (rightPane) setRightPaneWidth(currentRightPaneWidth);
 });
 
 // Initialize right pane width

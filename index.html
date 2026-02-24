@@ -7,42 +7,44 @@
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
+  <!-- ======= STICKY HEADER (independent from split panels) ======= -->
+  <div class="sticky-header" id="stickyHeader">
+    <div class="header-row" id="headerRow">
+      <div class="status-capsule" id="statusCapsule">
+        <button class="status-capsule-btn active" data-status="actual">Актуальные</button>
+        <button class="status-capsule-btn" data-status="archive">Архив</button>
+      </div>
+
+      <div class="condition-capsule" id="conditionCapsule">
+        <button class="condition-capsule-btn active" data-condition="new">Новые</button>
+        <button class="condition-capsule-btn" data-condition="used">С пробегом</button>
+      </div>
+
+      <div class="filter-capsule" id="filterCapsule">
+        <button class="filter-capsule-btn" data-filter="p1">Р1</button>
+        <button class="filter-capsule-btn" data-filter="p2">Р2</button>
+        <button class="filter-capsule-btn" data-filter="p3">Р3</button>
+        <button class="filter-capsule-btn" data-filter="k1">К1</button>
+        <button class="filter-capsule-btn" data-filter="v">В</button>
+        <button class="filter-capsule-btn" data-filter="s1">С1</button>
+        <button class="filter-capsule-btn" data-filter="s2">С2</button>
+      </div>
+
+      <div class="search-wrapper" id="searchWrapper">
+        <div class="search-box">
+          <input type="text" class="search-input" placeholder="Поиск" id="searchInput">
+        </div>
+      </div>
+    </div>
+    <div class="divider"></div>
+  </div>
+
   <!-- ======= SPLIT ROOT ======= -->
   <div id="splitRoot">
 
-    <!-- LEFT PANE: header + cars list -->
+    <!-- LEFT PANE: cars list -->
     <div id="leftPane">
       <div class="main-container" id="appRoot">
-        <div class="sticky-header" id="stickyHeader">
-          <div class="header-row" id="headerRow">
-            <div class="status-capsule" id="statusCapsule">
-              <button class="status-capsule-btn active" data-status="actual">Актуальные</button>
-              <button class="status-capsule-btn" data-status="archive">Архив</button>
-            </div>
-
-            <div class="condition-capsule" id="conditionCapsule">
-              <button class="condition-capsule-btn active" data-condition="new">Новые</button>
-              <button class="condition-capsule-btn" data-condition="used">С пробегом</button>
-            </div>
-
-            <div class="filter-capsule" id="filterCapsule">
-              <button class="filter-capsule-btn" data-filter="p1">Р1</button>
-              <button class="filter-capsule-btn" data-filter="p2">Р2</button>
-              <button class="filter-capsule-btn" data-filter="p3">Р3</button>
-              <button class="filter-capsule-btn" data-filter="k1">К1</button>
-              <button class="filter-capsule-btn" data-filter="v">В</button>
-              <button class="filter-capsule-btn" data-filter="s1">С1</button>
-              <button class="filter-capsule-btn" data-filter="s2">С2</button>
-            </div>
-
-            <div class="search-wrapper" id="searchWrapper">
-              <div class="search-box">
-                <input type="text" class="search-input" placeholder="Поиск" id="searchInput">
-              </div>
-            </div>
-          </div>
-          <div class="divider"></div>
-        </div>
         <div id="carsScrollArea">
           <div class="cars-grid" id="carsGrid"></div>
         </div>
