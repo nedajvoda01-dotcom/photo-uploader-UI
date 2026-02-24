@@ -14,7 +14,7 @@ const MAX_OPEN_WIDTH = 900;   // maximum open width (fixed cap)
 const HANDLE_WIDTH = 12;      // split handle width = collapsed tail
 
 // rightPaneState: 'open' | 'collapsed'
-let rightPaneState = 'open';
+let rightPaneState = 'collapsed';
 let isDragging = false;
 let dragStartX = 0;
 let dragStartRightWidth = 0;
@@ -129,7 +129,7 @@ window.addEventListener('resize', function() {
 });
 
 // Initialize right pane width
-setRightPaneWidth(MIN_OPEN_WIDTH);
+collapseRightPane();
 
 // Wire up the collapse button in the drawer header
 const rightPaneCollapseBtn = document.getElementById('rightPaneCollapseBtn');

@@ -189,10 +189,18 @@ searchInput.addEventListener('input', (e) => {
   renderCars();
 });
 
+let lastSelectedVin = localStorage.getItem('lastSelectedVin') || null;
+
 const handleCarClick = (e) => {
   if (e.target.closest('.link-item')) return;
   const card = e.target.closest('.car-card');
   if (!card) return;
+  const vin = card.dataset.vin || null;
+  if (vin) {
+    lastSelectedVin = vin;
+    localStorage.setItem('lastSelectedVin', vin);
+  }
+  expandRightPane();
   openDrawer();
 };
 
