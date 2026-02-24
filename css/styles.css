@@ -74,13 +74,11 @@ body {
 #leftPane {
   flex: 1 1 auto;
   min-width: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
   background: #E5E5E5; /* ~6% darker than --gray-100 (#F1F1F1) */
-  scrollbar-width: none;
-  -ms-overflow-style: none;
 }
-#leftPane::-webkit-scrollbar { width: 0; height: 0; }
 
 #splitHandle {
   flex: 0 0 12px;
@@ -121,8 +119,8 @@ body {
 }
 
 /* ======= МЕНЮ (как в твоём файле меню) ======= */
-#appRoot { display: none; }
-.main-container { display:flex; flex-direction:column; }
+#appRoot { display: none; flex: 1 1 auto; min-height: 0; }
+.main-container { display:flex; flex-direction:column; height: 100%; }
 
 .header-row {
   display:flex; align-items:center; gap:16px; flex-wrap:wrap; width:100%;
@@ -440,11 +438,9 @@ body {
   #rightPane { flex: 0 0 50vh; width: 100%; max-width: 100%; }
 }
 
-/* ======= STICKY HEADER (inside left pane scroll container) ======= */
+/* ======= STICKY HEADER (inside left pane — independent from scroll) ======= */
 .sticky-header {
-  position: sticky;
-  top: 0;
-  z-index: 250;
+  flex: 0 0 auto;
 
   background: #E5E5E5; /* match #leftPane background */
 
@@ -469,6 +465,17 @@ body {
   width: calc(100% + (2 * var(--page-pad)));
   margin-left: calc(-1 * var(--page-pad));
 }
+
+/* ======= CARDS SCROLL AREA ======= */
+#carsScrollArea {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+#carsScrollArea::-webkit-scrollbar { width: 0; height: 0; }
 
 
 .drawer-inner {
