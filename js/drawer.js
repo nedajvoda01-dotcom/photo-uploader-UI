@@ -15,6 +15,7 @@ const RIGHT_PANE_DEFAULT = 600;
 let isDragging = false;
 let dragStartX = 0;
 let dragStartRightWidth = 0;
+let dragMaxWidth = 0;
 let currentRightPaneWidth = RIGHT_PANE_DEFAULT;
 
 function isNarrowScreen() {
@@ -49,12 +50,18 @@ function setRightPaneWidth(width) {
 
 function onSplitPointerMove(e) {
   if (!isDragging) return;
-  const dx = dragStartX - e.clientX; // positive dx = drag left = right pane wider
-  setRightPaneWidth(dragStartRightWidth + dx);
+  const rawDelta = e.clientX - dragStartX;
+  const newWidth = dragStartRightWidth - rawDelta;
+  const clampedWidth = Math.max(RIGHT_PANE_MIN, Math.min(dragMaxWidth, newWidth));
+  const translateX = dragStartRightWidth - clampedWidth;
+  splitHandle.style.transform = 'translateX(' + translateX + 'px)';
+  rightPane.style.transform = 'translateX(' + translateX + 'px)';
 }
 
 function stopSplitDrag(e) {
+  if (!isDragging) return;
   isDragging = false;
+  document.body.classList.remove('split-dragging');
   document.body.style.userSelect = '';
   document.body.style.cursor = '';
   if (splitHandle) {
@@ -62,6 +69,11 @@ function stopSplitDrag(e) {
     splitHandle.removeEventListener('pointermove', onSplitPointerMove);
     splitHandle.removeEventListener('pointerup', stopSplitDrag);
     splitHandle.removeEventListener('pointercancel', stopSplitDrag);
+    rightPane.style.transform = '';
+    splitHandle.style.transform = '';
+    const rawDelta = e.clientX - dragStartX;
+    const finalWidth = Math.max(RIGHT_PANE_MIN, Math.min(dragMaxWidth, dragStartRightWidth - rawDelta));
+    setRightPaneWidth(finalWidth);
   }
 }
 
@@ -70,9 +82,13 @@ if (splitHandle) {
     e.preventDefault();
     isDragging = true;
     dragStartX = e.clientX;
-    dragStartRightWidth = currentRightPaneWidth;
+    dragStartRightWidth = Math.max(RIGHT_PANE_MIN, currentRightPaneWidth);
+    dragMaxWidth = getRightPaneMaxWidth();
+    document.body.classList.add('split-dragging');
     document.body.style.userSelect = 'none';
     document.body.style.cursor = 'col-resize';
+    rightPane.style.transform = '';
+    splitHandle.style.transform = '';
     splitHandle.setPointerCapture(e.pointerId);
     splitHandle.addEventListener('pointermove', onSplitPointerMove);
     splitHandle.addEventListener('pointerup', stopSplitDrag);
