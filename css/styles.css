@@ -356,15 +356,33 @@ body.split-dragging #splitHandle {
   gap: 4px;
   width: 100%;
 }
-.photo-placeholders > .photo-placeholder,
 .photo-placeholders > .photo-placeholder {
   width: 100%;
   aspect-ratio: 16 / 9;
 }
 .photo-placeholder {
+  position: relative;
+  overflow: hidden;
   background: #F1F1F1;
   border-radius: 0;
   border: none;
+}
+.photo-placeholder-img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+.photo-placeholder-more {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(26, 26, 26, 0.45);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
 }
 @media (max-width:360px) { .photo-placeholders { grid-template-columns: repeat(2, 1fr); } }
 .photo-progress { margin-top:0; }
@@ -373,9 +391,11 @@ body.split-dragging #splitHandle {
   margin-bottom:4px; font-size:14px; color: var(--text-tertiary);
   font-weight: var(--inter-medium);
 }
-.progress-bar-bg { width:100%; height:8px; background: var(--progress-bg); border-radius:100px; overflow:hidden; }
-.progress-bar-fill { height:100%; background: var(--progress-fill); border-radius:100px; width:0%; transition: width .3s ease; }
-.car-card:hover .progress-bar-fill { background: var(--progress-fill-hover); }
+.progress-bar-bg { position: relative; width:100%; height:8px; background: var(--progress-bg); border-radius:100px; overflow:hidden; }
+.progress-bar-fill { position:absolute; top:0; bottom:0; width:0%; transition: width .3s ease, left .3s ease; }
+.progress-bar-fill--used { left:0; background:#02D15C; border-radius:100px 0 0 100px; }
+.progress-bar-fill--uploaded { background: var(--progress-fill); border-radius:0 100px 100px 0; }
+.car-card:hover .progress-bar-fill--uploaded { background: var(--progress-fill-hover); }
 .photo-count { font-size:14px; font-weight: var(--inter-semibold); color: var(--text-primary); }
 
 /* ======= ЛОГИН-ОКНО (оверлей, чтобы не ломать body меню) ======= */

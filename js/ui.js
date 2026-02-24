@@ -30,7 +30,15 @@ const renderCars = () => {
   }
 
   carsGrid.innerHTML = filteredCars.map(car => {
-    const progressPercent = (car.photosCount / car.totalPhotos) * 100;
+    const kits = Array.isArray(car.kits) && car.kits.length ? car.kits : [{ photos: [], used: false }];
+    const photos = kits[0] && Array.isArray(kits[0].photos) ? kits[0].photos : [];
+    const totalCount = kits.length;
+    const uploadedCount = Number.isFinite(car.photosCount) ? car.photosCount : kits.filter(k => Array.isArray(k.photos) && k.photos.length > 0).length;
+    const usedCount = Number.isFinite(car.usedPhotosCount) ? car.usedPhotosCount : kits.filter(k => !!k.used).length;
+    const usedPart = Math.min(uploadedCount, usedCount);
+    const uploadedPart = Math.max(0, uploadedCount - usedPart);
+    const usedPercent = totalCount > 0 ? Math.min(100, Math.max(0, (usedPart / totalCount) * 100)) : 0;
+    const uploadedPercent = totalCount > 0 ? Math.min(100, Math.max(0, (uploadedPart / totalCount) * 100)) : 0;
     const titleLine = [
       toTitleCaseText(car.brand),
       toTitleCaseText(car.model),
@@ -38,14 +46,14 @@ const renderCars = () => {
     ].filter(Boolean).join(' ');
     const colorLine = toTitleCaseText(car.color);
 
-    // Получить массив фото (base64 или url)
-    const photos = Array.isArray(car.photosData) ? car.photosData : [];
-    // Для сетки: максимум 6 ячеек, первая — фото, остальные — плейсхолдеры
+    // Для сетки: максимум 6 ячеек
     let photoGrid = '';
     for (let i = 0; i < 6; i++) {
-      if (i === 0 && photos.length > 0 && photos[0]) {
-        // Показываем превью первого фото
-        photoGrid += `<div class="photo-placeholder"><img src="${photos[0]}" alt="Фото авто" style="width:100%;height:100%;object-fit:cover;border-radius:0;"></div>`;
+      const hiddenPhotosCount = Math.max(0, photos.length - 6);
+      if (photos.length > 6 && i === 5) {
+        photoGrid += `<div class="photo-placeholder photo-placeholder--filled"><img class="photo-placeholder-img" src="${photos[i]}" alt="Фото авто"><div class="photo-placeholder-more">+${hiddenPhotosCount}</div></div>`;
+      } else if (photos[i]) {
+        photoGrid += `<div class="photo-placeholder photo-placeholder--filled"><img class="photo-placeholder-img" src="${photos[i]}" alt="Фото авто"></div>`;
       } else {
         photoGrid += '<div class="photo-placeholder"></div>';
       }
@@ -64,10 +72,11 @@ const renderCars = () => {
         <div class="photo-progress">
           <div class="progress-header">
             <span>Загружено</span>
-            <span class="photo-count">${car.photosCount}/${car.totalPhotos}</span>
+            <span class="photo-count">${uploadedCount}/${totalCount}</span>
           </div>
           <div class="progress-bar-bg">
-            <div class="progress-bar-fill" style="width: ${progressPercent}%"></div>
+            <div class="progress-bar-fill progress-bar-fill--used" style="width: ${usedPercent}%"></div>
+            <div class="progress-bar-fill progress-bar-fill--uploaded" style="left: ${usedPercent}%; width: ${uploadedPercent}%"></div>
           </div>
         </div>
       </div>

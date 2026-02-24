@@ -282,14 +282,20 @@ window.addEventListener('message', (e) => {
       openPhotoViewer(e.data.src);
     }
     // Новый обработчик: фото загружено в iframe drawer
-    if (e.data && e.data.type === 'car_photos_update' && e.data.vin && Array.isArray(e.data.photos)) {
-      // Найти авто по VIN и обновить поле photosData (или создать его)
+    if (e.data && e.data.type === 'car_photos_update' && e.data.vin) {
       const car = window.CARS_DATA && window.CARS_DATA.find(c => c.vin === e.data.vin);
       if (car) {
-        car.photosData = e.data.photos;
-        // Для совместимости: обновить счетчик
-        car.photosCount = e.data.photos.length;
-        // Перерисовать карточки, чтобы обновить превью
+        const kits = Array.isArray(e.data.kits) ? e.data.kits : [];
+        const firstKitPhotos = (kits[0] && Array.isArray(kits[0].photos)) ? kits[0].photos : (Array.isArray(e.data.photos) ? e.data.photos : []);
+        const totalKits = Number.isFinite(e.data.totalPhotos) ? e.data.totalPhotos : kits.length;
+        const loadedKits = Number.isFinite(e.data.photosCount) ? e.data.photosCount : kits.filter(k => Array.isArray(k.photos) && k.photos.length > 0).length;
+        const usedKits = Number.isFinite(e.data.usedCount) ? e.data.usedCount : kits.filter(k => !!k.used).length;
+
+        car.kits = kits;
+        car.photosData = firstKitPhotos;
+        car.photosCount = loadedKits;
+        car.totalPhotos = totalKits;
+        car.usedPhotosCount = usedKits;
         if (typeof renderCars === 'function') renderCars();
       }
     }
