@@ -7,83 +7,84 @@
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-<!-- ======= МЕНЮ ======= -->
-  <div class="main-container" id="appRoot">
-    <div class="sticky-header" id="stickyHeader">
-            <div class="header-row" id="headerRow">
-      <div class="status-capsule" id="statusCapsule">
-        <button class="status-capsule-btn active" data-status="actual">Актуальные</button>
-        <button class="status-capsule-btn" data-status="archive">Архив</button>
-      </div>
+  <!-- ======= SPLIT ROOT ======= -->
+  <div id="splitRoot">
 
-      <div class="condition-capsule" id="conditionCapsule">
-        <button class="condition-capsule-btn active" data-condition="new">Новые</button>
-        <button class="condition-capsule-btn" data-condition="used">С пробегом</button>
-      </div>
+    <!-- LEFT PANE: header + cars list -->
+    <div id="leftPane">
+      <div class="main-container" id="appRoot">
+        <div class="sticky-header" id="stickyHeader">
+          <div class="header-row" id="headerRow">
+            <div class="status-capsule" id="statusCapsule">
+              <button class="status-capsule-btn active" data-status="actual">Актуальные</button>
+              <button class="status-capsule-btn" data-status="archive">Архив</button>
+            </div>
 
-      <div class="filter-capsule" id="filterCapsule">
-        <button class="filter-capsule-btn" data-filter="p1">Р1</button>
-        <button class="filter-capsule-btn" data-filter="p2">Р2</button>
-        <button class="filter-capsule-btn" data-filter="p3">Р3</button>
-        <button class="filter-capsule-btn" data-filter="k1">К1</button>
-        <button class="filter-capsule-btn" data-filter="v">В</button>
-        <button class="filter-capsule-btn" data-filter="s1">С1</button>
-        <button class="filter-capsule-btn" data-filter="s2">С2</button>
-      </div>
+            <div class="condition-capsule" id="conditionCapsule">
+              <button class="condition-capsule-btn active" data-condition="new">Новые</button>
+              <button class="condition-capsule-btn" data-condition="used">С пробегом</button>
+            </div>
 
-      <div class="search-wrapper" id="searchWrapper">
-        <div class="search-box">
-          <input type="text" class="search-input" placeholder="Поиск" id="searchInput">
+            <div class="filter-capsule" id="filterCapsule">
+              <button class="filter-capsule-btn" data-filter="p1">Р1</button>
+              <button class="filter-capsule-btn" data-filter="p2">Р2</button>
+              <button class="filter-capsule-btn" data-filter="p3">Р3</button>
+              <button class="filter-capsule-btn" data-filter="k1">К1</button>
+              <button class="filter-capsule-btn" data-filter="v">В</button>
+              <button class="filter-capsule-btn" data-filter="s1">С1</button>
+              <button class="filter-capsule-btn" data-filter="s2">С2</button>
+            </div>
+
+            <div class="search-wrapper" id="searchWrapper">
+              <div class="search-box">
+                <input type="text" class="search-input" placeholder="Поиск" id="searchInput">
+              </div>
+            </div>
+          </div>
+          <div class="divider"></div>
+        </div>
+        <div id="carsScrollArea">
+          <div class="cars-grid" id="carsGrid"></div>
         </div>
       </div>
-    </div>
+    </div><!-- /#leftPane -->
 
-    <div class="divider"></div>
+    <!-- SPLIT HANDLE -->
+    <div id="splitHandle" title="Потяни, чтобы изменить ширину"></div>
+
+    <!-- RIGHT PANE: detail view / iframe -->
+    <div id="rightPane">
+      <div class="drawer-inner">
+        <div class="drawer-header">
+          <div class="drawer-header-actions" id="drawerHeaderActions">
+            <div class="admin-wrapper" id="adminWrapper">
+              <span class="admin-text" id="adminText"></span>
+              <div class="avatar" id="avatar" role="button" tabindex="0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 8c-2.168 0-4 1.832-4 4s1.832 4 4 4s4-1.832 4-4s-1.832-4-4-4m0 6c-1.065 0-2-.935-2-2s.935-2 2-2s2 .935 2 2s-.935 2-2 2"/><path fill="currentColor" d="M20 5h-2.586l-2.707-2.707A.996.996 0 0 0 14 2h-4a.996.996 0 0 0-.707.293L6.586 5H4c-1.103 0-2 .897-2 2v11c0 1.103.897 2 2 2h16c1.103 0 2-.897 2-2V7c0-1.103-.897-2-2-2M4 18V7h3c.266 0 .52-.105.707-.293L10.414 4h3.172l2.707 2.707A.996.996 0 0 0 17 7h3l.002 11z"/></svg></div>
+            </div>
+          </div>
         </div>
-    <div class="cars-grid" id="carsGrid"></div>
-  </div>
+        <div class="drawer-content" id="drawerContent">
+          <iframe id="drawerIframe" class="drawer-iframe" title="Карточка автомобиля"></iframe>
+        </div>
+      </div>
+    </div><!-- /#rightPane -->
+
+  </div><!-- /#splitRoot -->
 
   <!-- ======= ОВЕРЛЕЙ ВХОДА ======= -->
   <div class="login-overlay" id="loginOverlay" aria-hidden="true">
     <form class="login-card" id="loginForm" role="dialog" aria-modal="true" aria-label="Вход" novalidate>
       <input type="text" class="input-field login-field" id="loginInput" placeholder="Логин" inputmode="text" autocomplete="off">
       <input type="password" class="input-field password-field" id="passwordInput" placeholder="Пароль" inputmode="text" autocomplete="off">
-
       <div class="error-message" id="errorMessage">Неверный логин или пароль.</div>
-<button class="login-button" id="loginButton" type="submit">Войти</button>
+      <button class="login-button" id="loginButton" type="submit">Войти</button>
     </form>
   </div>
-
-  
-
-  <!-- ======= DRAWER (правая панель) ======= -->
-  <div class="drawer-overlay" id="drawerOverlay" aria-hidden="true"></div>
-
-  <aside class="drawer" id="drawer" aria-hidden="true" role="complementary" aria-label="Панель автомобиля">
-    <div class="drawer-resizer" id="drawerResizer" title="Потяни, чтобы изменить ширину"></div>
-
-    <div class="drawer-inner">
-      <div class="drawer-header">
-        <button class="drawer-close" id="drawerClose" type="button">Свернуть</button>
-        <div class="drawer-header-actions" id="drawerHeaderActions">
-          <div class="admin-wrapper" id="adminWrapper">
-            <span class="admin-text" id="adminText"></span>
-            <div class="avatar" id="avatar" role="button" tabindex="0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 8c-2.168 0-4 1.832-4 4s1.832 4 4 4s4-1.832 4-4s-1.832-4-4-4m0 6c-1.065 0-2-.935-2-2s.935-2 2-2s2 .935 2 2s-.935 2-2 2"/><path fill="currentColor" d="M20 5h-2.586l-2.707-2.707A.996.996 0 0 0 14 2h-4a.996.996 0 0 0-.707.293L6.586 5H4c-1.103 0-2 .897-2 2v11c0 1.103.897 2 2 2h16c1.103 0 2-.897 2-2V7c0-1.103-.897-2-2-2M4 18V7h3c.266 0 .52-.105.707-.293L10.414 4h3.172l2.707 2.707A.996.996 0 0 0 17 7h3l.002 11z"/></svg></div>
-          </div>
-        </div>
-      </div>
-
-      <div class="drawer-content" id="drawerContent">
-        <iframe id="drawerIframe" class="drawer-iframe" title="Карточка автомобиля"></iframe>
-      </div>
-    </div>
-  </aside>
 
   <!-- ======= FULLSCREEN PHOTO VIEWER OVERLAY ======= -->
   <div class="photo-viewer-overlay" id="photoViewerOverlay" aria-hidden="true">
     <img id="photoViewerImg" alt="">
   </div>
-
 
   <script src="Auto/cars-data.js"></script>
   <script src="js/auth.js"></script>

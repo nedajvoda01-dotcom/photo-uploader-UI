@@ -46,32 +46,81 @@
 
   --module-height: 42px;
 
-  /* width of the visible drawer portion at any given moment:
-     20 px = handle-only (S0/closed), or the full open width (S1-S3).
-     JS keeps this in sync; CSS transitions animate the content shift.
-     NOTE: this default value must match SNAP_HANDLE_PX in js/app.js. */
-  --drawer-offset: 20px;
+  /* split view handle visual reference (see #splitHandle in CSS) */
+  --drawer-offset: 0px;
 }
 
-html, body { height: 100%; width: 100%; overflow-x: hidden; }
+html, body { height: 100%; width: 100%; overflow: hidden; }
 html { background: var(--gray-100); }
 
 body {
   font-family: 'Inter', sans-serif;
   font-weight: var(--inter-regular);
   background: var(--gray-100);
-  padding: var(--page-pad);
-  /* reserve space on the right for the drawer so cards are never covered */
-  padding-right: calc(var(--page-pad) + var(--drawer-offset));
-  transition: padding-right 0.22s ease;
--webkit-font-smoothing: antialiased;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   color: var(--text-primary);
 }
 
+/* ======= SPLIT VIEW ======= */
+#splitRoot {
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+#leftPane {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: #E5E5E5; /* ~6% darker than --gray-100 (#F1F1F1) */
+}
+
+#splitHandle {
+  flex: 0 0 12px;
+  width: 12px;
+  cursor: col-resize;
+  background: var(--gray-200);
+  position: relative;
+  z-index: 10;
+  user-select: none;
+  touch-action: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#splitHandle::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 4px;
+  height: 48px;
+  background: rgba(26, 26, 26, 0.35);
+  border-radius: 4px;
+}
+#splitHandle:hover { background: var(--gray-300); }
+
+#rightPane {
+  flex: 0 0 600px;
+  width: 600px;
+  min-width: 280px;
+  max-width: calc(100vw - 340px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: var(--gray-100);
+  border-left: 1px solid var(--border-light);
+}
+
 /* ======= МЕНЮ (как в твоём файле меню) ======= */
-#appRoot { display: none; }
-.main-container { display:flex; flex-direction:column; gap: var(--space-unit); }
+#appRoot { display: none; flex: 1 1 auto; min-height: 0; }
+.main-container { display:flex; flex-direction:column; height: 100%; }
 
 .header-row {
   display:flex; align-items:center; gap:16px; flex-wrap:wrap; width:100%;
@@ -201,19 +250,9 @@ body {
 }
 
 .cars-grid {
-  display:grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: var(--space-unit); margin-top: var(--space-unit);
+  display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-unit); padding: var(--space-unit) var(--page-pad) var(--page-pad);
 }
-/* When the drawer is open fix card width to 300 px so cards never resize
-   while dragging or snapping — the whole grid block shifts left instead. */
-body.drawer-open .cars-grid {
-  grid-template-columns: repeat(auto-fill, 300px);
-}
-/* Explicit column counts for each discrete snap state so the grid regroups
-   only when the drawer jumps to a new snap position, not pixel-by-pixel. */
-body.drawer-state-s3 .cars-grid { grid-template-columns: repeat(3, 300px); }
-body.drawer-state-s2 .cars-grid { grid-template-columns: repeat(2, 300px); }
-body.drawer-state-s1 .cars-grid { grid-template-columns: repeat(1, 300px); }
 .car-card {
   background:var(--white); border-radius: var(--radius-lg); padding:20px;
   border:1px solid var(--border-light); box-shadow: var(--shadow-sm);
@@ -344,50 +383,8 @@ body.drawer-state-s1 .cars-grid { grid-template-columns: repeat(1, 300px); }
   .login-button { padding:16px 18px; border-radius:14px; }
 }
   
-/* ======= DRAWER (правая панель) ======= */
-.drawer-overlay {
-  position: fixed;
-  top: var(--header-height);
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(26, 26, 26, 0.10);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.18s ease;
-  z-index: 9000;
-}
-.drawer-overlay.visible {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-.drawer {
-  position: fixed;
-  top: var(--header-height);
-  right: 0;
-  height: calc(100vh - var(--header-height));
-width: 760px; /* default on desktop; JS может переопределять */
-  max-width: 100vw;
-  background: var(--gray-100); /* как фон системы */
-  border-left: 1px solid var(--border-light);
-  transform: translateX(calc(100% - 20px)); /* 20px handle visible when closed */
-  transition: transform 0.22s ease, width 0.22s ease;
-  z-index: 9100;
-
-  display: flex;
-  flex-direction: column;
-}
-.drawer.open {
-  transform: translateX(0);
-}
-
-.drawer-inner {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
+/* ======= RIGHT PANE CONTENT ======= */
+/* drawer-overlay is removed; #rightPane is always visible in split view */
 
 .drawer-header {
   height: 56px;
@@ -429,65 +426,25 @@ width: 760px; /* default on desktop; JS может переопределять 
 
 .drawer-content {
   flex: 1 1 auto;
-  padding: 16px;
-  overflow: auto;
+  padding: 0;
+  overflow: hidden;
 }
 
-/* ручка ресайза / handle */
-.drawer-resizer {
-  position: absolute;
-  left: 0;
-  top: 0;
-  height: 100%;
-  width: 20px;              /* покрывает всю полоску-хвостик */
-  cursor: pointer;          /* в свёрнутом виде — открыть */
-  touch-action: none;
-}
-.drawer.open .drawer-resizer {
-  cursor: col-resize;       /* в открытом виде — изменить ширину */
-}
-.drawer-resizer::after {
-  content: "";
-  position: absolute;
-  left: 8px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 2px;
-  height: 80px;
-  border-radius: 2px;
-  background: rgba(26, 26, 26, 0.18);
-}
-
-/* На узких экранах — на весь экран и без ресайза */
+/* На узких экранах — обе панели в стеке */
 @media (max-width: 600px) {
-  /* On mobile the drawer is a full-screen overlay, so we don't nudge content */
-  :root { --drawer-offset: 0px; }
-  body { padding-right: var(--page-pad); transition: none; }
-  .drawer {
-    width: 100vw !important;
-    max-width: 100vw;
-  }
-  .drawer:not(.open) {
-    transform: translateX(100%); /* без хвостика на мобильных */
-  }
-  .drawer-resizer {
-    display: none;
-  }
+  #splitRoot { flex-direction: column; }
+  #splitHandle { flex: 0 0 8px; height: 8px; width: 100%; cursor: row-resize; }
+  #splitHandle::after { width: 48px; height: 4px; }
+  #rightPane { flex: 0 0 50vh; width: 100%; max-width: 100%; }
 }
 
-
-        
-/* ======= FULL-WIDTH FIXED HEADER ======= */
+/* ======= STICKY HEADER (inside left pane — independent from scroll) ======= */
 .sticky-header {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 250;
+  flex: 0 0 auto;
 
-  background: var(--gray-100);
+  background: #E5E5E5; /* match #leftPane background */
 
-  /* контент шапки на 20px ниже верха */
+  /* content padding */
   padding-top: 20px;
 
   /* боковые отступы совпадают с паддингом страницы */
@@ -498,7 +455,7 @@ width: 760px; /* default on desktop; JS может переопределять 
   padding-bottom: 0;
 }
 
-/* линия под шапкой — на 20px ниже, во всю ширину экрана */
+/* линия под шапкой — во всю ширину */
 .sticky-header .divider {
   height: 1px;
   background: var(--border-light);
@@ -509,19 +466,24 @@ width: 760px; /* default on desktop; JS может переопределять 
   margin-left: calc(-1 * var(--page-pad));
 }
 
-
-/* ======= HIDE PAGE SCROLLBAR (оставляем прокрутку колесом/тачем) ======= */
-html, body {
-  scrollbar-width: none;        /* Firefox */
-  -ms-overflow-style: none;     /* IE/Edge legacy */
+/* ======= CARDS SCROLL AREA ======= */
+#carsScrollArea {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
-html::-webkit-scrollbar, body::-webkit-scrollbar {
-  width: 0;
-  height: 0;
-}
+#carsScrollArea::-webkit-scrollbar { width: 0; height: 0; }
 
-/* ======= DRAWER EMBEDDED CONTENT ======= */
-.drawer-inner { height: 100%; }
+
+.drawer-inner {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
 .drawer-content { flex: 1 1 auto; min-height: 0; padding: 0; overflow: hidden; }
 .drawer-iframe { width: 100%; height: 100%; border: 0; display: block; background: transparent; }
 
