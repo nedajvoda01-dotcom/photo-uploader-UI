@@ -52,6 +52,13 @@ const ROLE_TO_FILTER = {
   'V':  'v',
   'S1': 's1',
   'S2': 's2',
+  'Р1': 'p1',
+  'Р2': 'p2',
+  'Р3': 'p3',
+  'К1': 'k1',
+  'В':  'v',
+  'С1': 's1',
+  'С2': 's2',
 };
 
 function normalizeLoginValue(v) {

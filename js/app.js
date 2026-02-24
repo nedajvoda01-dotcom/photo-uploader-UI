@@ -36,7 +36,8 @@ window.addEventListener('resize', adjustContentOffset);
 let logoutModule = null;
 
 function createLogoutModule() {
-  const module = document.createElement('div');
+  const module = document.createElement('button');
+  module.type = 'button';
   module.className = 'logout-module';
   module.textContent = 'Выйти';
   module.id = 'logoutModule';
@@ -53,15 +54,26 @@ function createLogoutModule() {
 }
 
 function showLogoutModule() {
-  if (logoutModule) return;
-  logoutModule = createLogoutModule();
-  adminWrapper.insertBefore(logoutModule, avatar);
+  if (!logoutModule) {
+    logoutModule = createLogoutModule();
+    adminWrapper.insertBefore(logoutModule, avatar);
+  }
+  adminText.style.display = 'none';
 }
 
 function hideLogoutModule() {
+  adminText.style.display = '';
   if (!logoutModule) return;
   logoutModule.remove();
   logoutModule = null;
+}
+
+function toggleLogoutModule() {
+  if (logoutModule) {
+    hideLogoutModule();
+    return;
+  }
+  showLogoutModule();
 }
 
 // ======= LOGIN OVERLAY =======
@@ -97,10 +109,10 @@ function applyAccessControl(session) {
     ? `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M11.219 3.375L8 7.399L4.781 3.375A1.002 1.002 0 0 0 3 4v15c0 1.103.897 2 2 2h14c1.103 0 2-.897 2-2V4a1.002 1.002 0 0 0-1.781-.625L16 7.399l-3.219-4.024c-.381-.474-1.181-.474-1.562 0M5 19v-2h14.001v2zm10.219-9.375c.381.475 1.182.475 1.563 0L19 6.851L19.001 15H5V6.851l2.219 2.774c.381.475 1.182.475 1.563 0L12 5.601z"/></svg>`
     : `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 8c-2.168 0-4 1.832-4 4s1.832 4 4 4s4-1.832 4-4s-1.832-4-4-4m0 6c-1.065 0-2-.935-2-2s.935-2 2-2s2 .935 2 2s-.935 2-2 2"/><path fill="currentColor" d="M20 5h-2.586l-2.707-2.707A.996.996 0 0 0 14 2h-4a.996.996 0 0 0-.707.293L6.586 5H4c-1.103 0-2 .897-2 2v11c0 1.103.897 2 2 2h16c1.103 0 2-.897 2-2V7c0-1.103-.897-2-2-2M4 18V7h3c.266 0 .52-.105.707-.293L10.414 4h3.172l2.707 2.707A.996.996 0 0 0 17 7h3l.002 11z"/></svg>`;
 
-  adminText.textContent = isAdmin ? 'ADMIN' : (session ? session.user : '');
+  adminText.textContent = isAdmin ? 'Админ' : (session ? 'Фотограф' : '');
 
   adminWrapper.style.display = '';
-  showLogoutModule();
+  hideLogoutModule();
 
   const buttons = Array.from(document.querySelectorAll('.filter-capsule-btn'));
 
@@ -123,15 +135,36 @@ function applyAccessControl(session) {
 
 function resetUIToDefaults() {
   activeFilter = null;
-  activeStatus = 'actual';
-  activeCondition = 'new';
+  activeStatus = null;
+  activeCondition = null;
   searchQuery = '';
   searchInput.value = '';
   document.querySelectorAll('.filter-capsule-btn').forEach(b => { b.classList.remove('active'); b.disabled = false; });
-  document.querySelectorAll('.status-capsule-btn').forEach(b => b.classList.toggle('active', b.dataset.status === 'actual'));
-  document.querySelectorAll('.condition-capsule-btn').forEach(b => b.classList.toggle('active', b.dataset.condition === 'new'));
+  document.querySelectorAll('.status-capsule-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.condition-capsule-btn').forEach(b => b.classList.remove('active'));
   adminWrapper.style.display = '';
+  hideLogoutModule();
 }
+
+avatar.addEventListener('click', (e) => {
+  e.stopPropagation();
+  if (!getSession()) return;
+  toggleLogoutModule();
+});
+
+avatar.addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  e.preventDefault();
+  e.stopPropagation();
+  if (!getSession()) return;
+  toggleLogoutModule();
+});
+
+document.addEventListener('click', (e) => {
+  if (!logoutModule) return;
+  if (adminWrapper.contains(e.target)) return;
+  hideLogoutModule();
+});
 
 // ======= FILTER / STATUS / CONDITION / SEARCH HANDLERS =======
 document.addEventListener('click', (e) => {
@@ -167,8 +200,12 @@ const handleStatusClick = (e) => {
   const status = btn.dataset.status;
   document.querySelectorAll('.status-capsule-btn').forEach(b => b.classList.remove('active'));
 
-  activeStatus = status;
-  btn.classList.add('active');
+  if (activeStatus === status) {
+    activeStatus = null;
+  } else {
+    activeStatus = status;
+    btn.classList.add('active');
+  }
   renderCars();
 };
 
@@ -179,8 +216,12 @@ const handleConditionClick = (e) => {
   const condition = btn.dataset.condition;
   document.querySelectorAll('.condition-capsule-btn').forEach(b => b.classList.remove('active'));
 
-  activeCondition = condition;
-  btn.classList.add('active');
+  if (activeCondition === condition) {
+    activeCondition = null;
+  } else {
+    activeCondition = condition;
+    btn.classList.add('active');
+  }
   renderCars();
 };
 
@@ -239,6 +280,18 @@ window.addEventListener('message', (e) => {
   try {
     if (e.data && e.data.type === 'photo_open' && e.data.src) {
       openPhotoViewer(e.data.src);
+    }
+    // Новый обработчик: фото загружено в iframe drawer
+    if (e.data && e.data.type === 'car_photos_update' && e.data.vin && Array.isArray(e.data.photos)) {
+      // Найти авто по VIN и обновить поле photosData (или создать его)
+      const car = window.CARS_DATA && window.CARS_DATA.find(c => c.vin === e.data.vin);
+      if (car) {
+        car.photosData = e.data.photos;
+        // Для совместимости: обновить счетчик
+        car.photosCount = e.data.photos.length;
+        // Перерисовать карточки, чтобы обновить превью
+        if (typeof renderCars === 'function') renderCars();
+      }
     }
   } catch(err) {}
 });

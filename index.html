@@ -11,12 +11,12 @@
   <div class="sticky-header" id="stickyHeader">
     <div class="header-row" id="headerRow">
       <div class="status-capsule" id="statusCapsule">
-        <button class="status-capsule-btn active" data-status="actual">Актуальные</button>
+        <button class="status-capsule-btn" data-status="actual">Актуальные</button>
         <button class="status-capsule-btn" data-status="archive">Архив</button>
       </div>
 
       <div class="condition-capsule" id="conditionCapsule">
-        <button class="condition-capsule-btn active" data-condition="new">Новые</button>
+        <button class="condition-capsule-btn" data-condition="new">Новые</button>
         <button class="condition-capsule-btn" data-condition="used">С пробегом</button>
       </div>
 
@@ -80,13 +80,21 @@
         <!-- data-role="right-pane-header" — шапка: кнопка "Свернуть" + профиль/выход -->
         <div class="drawer-header" data-role="right-pane-header">
           <!-- data-role="right-pane-collapse-btn" — кнопка «Свернуть», вешает collapseRightPane() -->
-          <button class="drawer-close" id="rightPaneCollapseBtn" data-role="right-pane-collapse-btn">Свернуть</button>
+          <button class="drawer-close" id="rightPaneCollapseBtn" data-role="right-pane-collapse-btn" aria-label="Свернуть" title="Свернуть">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M10.061 19.061L17.121 12l-7.06-7.061l-2.122 2.122L12.879 12l-4.94 4.939z" fill="currentColor"/>
+            </svg>
+          </button>
+          <div class="drawer-car-meta" id="rightPaneCarMeta" data-role="right-pane-car-meta">
+            <span class="drawer-car-meta-text ui-muted-fixed" id="rightPaneCarMetaText" data-role="right-pane-car-meta-text"></span>
+            <span class="drawer-vin-text ui-muted-fixed" id="rightPaneVinText" data-role="right-pane-vin-text"></span>
+          </div>
           <!-- data-role="right-pane-header-actions" — правый блок шапки (профиль, выход) -->
           <div class="drawer-header-actions" id="drawerHeaderActions" data-role="right-pane-header-actions">
             <!-- data-role="right-pane-user-block" — блок пользователя (лейбл + аватар) -->
             <div class="admin-wrapper" id="adminWrapper" data-role="right-pane-user-block">
               <!-- data-role="right-pane-user-label" — текст "ADMIN" или логин фотографа -->
-              <span class="admin-text" id="adminText" data-role="right-pane-user-label"></span>
+              <span class="admin-text ui-muted-fixed" id="adminText" data-role="right-pane-user-label"></span>
               <!-- data-role="right-pane-avatar" — иконка-аватар; SVG меняется в applyAccessControl() -->
               <div class="avatar" id="avatar" data-role="right-pane-avatar" role="button" tabindex="0"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 8c-2.168 0-4 1.832-4 4s1.832 4 4 4s4-1.832 4-4s-1.832-4-4-4m0 6c-1.065 0-2-.935-2-2s.935-2 2-2s2 .935 2 2s-.935 2-2 2"/><path fill="currentColor" d="M20 5h-2.586l-2.707-2.707A.996.996 0 0 0 14 2h-4a.996.996 0 0 0-.707.293L6.586 5H4c-1.103 0-2 .897-2 2v11c0 1.103.897 2 2 2h16c1.103 0 2-.897 2-2V7c0-1.103-.897-2-2-2M4 18V7h3c.266 0 .52-.105.707-.293L10.414 4h3.172l2.707 2.707A.996.996 0 0 0 17 7h3l.002 11z"/></svg></div>
             </div>
@@ -94,6 +102,7 @@
         </div>
         <!-- data-role="right-pane-content" — область содержимого (iframe) -->
         <div class="drawer-content" id="drawerContent" data-role="right-pane-content">
+          <div class="drawer-empty-state" id="drawerEmptyState" aria-live="polite">Выберите автомобиль, чтобы отобразить информацию.</div>
           <!-- data-role="right-pane-iframe" — iframe с карточкой авто; src = DRAWER_DATA_URL (drawer.js) -->
           <iframe id="drawerIframe" class="drawer-iframe" data-role="right-pane-iframe" title="Карточка автомобиля"></iframe>
         </div>

@@ -1,7 +1,7 @@
 // ======= STATE: single source of truth for active filters =======
 let activeFilter = null;
-let activeStatus = 'actual';
-let activeCondition = 'new';
+let activeStatus = null;
+let activeCondition = null;
 let searchQuery = '';
 
 /**
