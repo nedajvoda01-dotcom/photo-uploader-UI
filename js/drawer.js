@@ -20,6 +20,8 @@ let dragStartX = 0;
 let dragStartRightWidth = 0;
 let dragMaxWidth = 0;
 let currentRightPaneWidth = MIN_OPEN_WIDTH;
+let rafId = null;
+let pendingWidth = 0;
 
 function isNarrowScreen() {
   return window.matchMedia('(max-width: 600px)').matches;
@@ -29,7 +31,7 @@ function getRightPaneMaxWidth() {
   const totalWidth = splitRoot ? splitRoot.offsetWidth : window.innerWidth;
   const handleWidth = splitHandle ? splitHandle.offsetWidth : HANDLE_WIDTH;
   const dynamicMax = totalWidth - handleWidth - LEFT_PANE_MIN;
-  return Math.min(MAX_OPEN_WIDTH, Math.max(MIN_OPEN_WIDTH, dynamicMax));
+  return Math.max(MIN_OPEN_WIDTH, dynamicMax);
 }
 
 function setRightPaneWidth(width) {
@@ -62,16 +64,22 @@ function onSplitPointerMove(e) {
   if (!isDragging) return;
   if (rightPaneState === 'collapsed') return;
   const rawDelta = e.clientX - dragStartX;
-  const newWidth = dragStartRightWidth - rawDelta;
-  const clampedWidth = Math.max(MIN_OPEN_WIDTH, Math.min(dragMaxWidth, newWidth));
-  const translateX = dragStartRightWidth - clampedWidth;
-  splitHandle.style.transform = 'translateX(' + translateX + 'px)';
-  rightPane.style.transform = 'translateX(' + translateX + 'px)';
+  pendingWidth = Math.max(MIN_OPEN_WIDTH, Math.min(dragMaxWidth, dragStartRightWidth - rawDelta));
+  if (rafId === null) {
+    rafId = requestAnimationFrame(function() {
+      rafId = null;
+      setRightPaneWidth(pendingWidth);
+    });
+  }
 }
 
 function stopSplitDrag(e) {
   if (!isDragging) return;
   isDragging = false;
+  if (rafId !== null) {
+    cancelAnimationFrame(rafId);
+    rafId = null;
+  }
   document.body.classList.remove('split-dragging');
   document.body.style.userSelect = '';
   document.body.style.cursor = '';
@@ -80,8 +88,6 @@ function stopSplitDrag(e) {
     splitHandle.removeEventListener('pointermove', onSplitPointerMove);
     splitHandle.removeEventListener('pointerup', stopSplitDrag);
     splitHandle.removeEventListener('pointercancel', stopSplitDrag);
-    rightPane.style.transform = '';
-    splitHandle.style.transform = '';
     const rawDelta = e.clientX - dragStartX;
     const finalWidth = Math.max(MIN_OPEN_WIDTH, Math.min(dragMaxWidth, dragStartRightWidth - rawDelta));
     setRightPaneWidth(finalWidth);
