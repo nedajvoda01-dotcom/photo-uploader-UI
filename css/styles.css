@@ -107,6 +107,16 @@ body {
 }
 #splitHandle:hover { background: var(--gray-300); }
 
+/* Disable transitions and text selection during split drag */
+body.split-dragging {
+  cursor: col-resize !important;
+  user-select: none;
+}
+body.split-dragging #rightPane,
+body.split-dragging #splitHandle {
+  transition: none !important;
+}
+
 #rightPane {
   flex: 0 0 600px;
   width: 600px;
