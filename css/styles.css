@@ -124,7 +124,6 @@ body.split-dragging #splitHandle {
   flex: 0 0 var(--right-pane-min-width);
   width: var(--right-pane-min-width);
   min-width: 0;
-  max-width: var(--right-pane-max-width);
   overflow: hidden;
   display: flex;
   flex-direction: column;
