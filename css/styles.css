@@ -123,14 +123,14 @@ body.split-dragging #splitHandle {
 #rightPane {
   flex: 0 0 var(--right-pane-min-width);
   width: var(--right-pane-min-width);
-  min-width: var(--right-pane-min-width);
+  min-width: 0;
   max-width: var(--right-pane-max-width);
   overflow: hidden;
   display: flex;
   flex-direction: column;
   background: var(--gray-100);
   border-left: 1px solid var(--border-light);
-  transition: transform 0.2s ease;
+  transition: width 0.2s ease, flex-basis 0.2s ease;
 }
 
 /* ======= МЕНЮ (как в твоём файле меню) ======= */

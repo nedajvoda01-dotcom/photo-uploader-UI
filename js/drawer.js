@@ -38,17 +38,17 @@ function setRightPaneWidth(width) {
   const clamped = Math.min(max, Math.max(MIN_OPEN_WIDTH, width));
   rightPane.style.width = clamped + 'px';
   rightPane.style.flex = '0 0 ' + clamped + 'px';
-  rightPane.style.transform = 'translateX(0)';
+  rightPane.style.transform = '';
   currentRightPaneWidth = clamped;
 }
 
 function collapseRightPane() {
   if (!rightPane) return;
   rightPaneState = 'collapsed';
-  // Keep physical width at MIN_OPEN_WIDTH; slide the pane off-screen to the right
-  rightPane.style.width = MIN_OPEN_WIDTH + 'px';
-  rightPane.style.flex = '0 0 ' + MIN_OPEN_WIDTH + 'px';
-  rightPane.style.transform = 'translateX(' + MIN_OPEN_WIDTH + 'px)';
+  // Shrink physical width to 0 so leftPane expands; splitHandle stays as the visible tail
+  rightPane.style.width = '0px';
+  rightPane.style.flex = '0 0 0px';
+  rightPane.style.transform = '';
   currentRightPaneWidth = MIN_OPEN_WIDTH;
 }
 
@@ -117,8 +117,8 @@ window.addEventListener('resize', function() {
   if (rightPaneState === 'open') {
     setRightPaneWidth(currentRightPaneWidth);
   } else {
-    // Refresh collapsed transform in case MIN_OPEN_WIDTH changed (it won't, but for safety)
-    rightPane.style.transform = 'translateX(' + MIN_OPEN_WIDTH + 'px)';
+    // Maintain collapsed state
+    collapseRightPane();
   }
 });
 
