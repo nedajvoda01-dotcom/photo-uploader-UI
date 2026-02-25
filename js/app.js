@@ -114,10 +114,12 @@ function applyAccessControl(session) {
   adminWrapper.style.display = '';
   hideLogoutModule();
 
-  const buttons = Array.from(document.querySelectorAll('.filter-capsule-btn'));
+  const filterButtons = Array.from(document.querySelectorAll('.filter-capsule-btn'));
+  const statusButtons = Array.from(document.querySelectorAll('.status-capsule-btn'));
 
   if (isAdmin) {
-    buttons.forEach(b => { b.disabled = false; });
+    filterButtons.forEach(b => { b.disabled = false; });
+    statusButtons.forEach(b => { b.disabled = false; });
     return;
   }
 
@@ -125,11 +127,18 @@ function applyAccessControl(session) {
   const fixedFilter = session ? session.allowedFilter : null;
   activeFilter = fixedFilter;
 
-  buttons.forEach(b => {
+  filterButtons.forEach(b => {
     const f = b.dataset.filter;
     const isMine = f === fixedFilter;
     b.classList.toggle('active', isMine);
     b.disabled = !isMine;
+  });
+
+  // Photographer: only 'Актуальные' доступны, 'Архив' заблокирован
+  statusButtons.forEach(b => {
+    const isActual = b.dataset.status === 'actual';
+    b.classList.toggle('active', isActual);
+    b.disabled = !isActual;
   });
 }
 
