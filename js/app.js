@@ -48,6 +48,9 @@ function createLogoutModule() {
     hideLogoutModule();
     resetUIToDefaults();
     showLogin();
+    // Reset right pane content so the next login does not reuse stale role-bound iframe state
+    openDrawer('');
+    collapseRightPane();
   });
 
   return module;
@@ -331,8 +334,14 @@ document.getElementById('loginForm').addEventListener('submit', function(event) 
       passwordInput.classList.add('success');
       loginButton.disabled = true;
 
-      applyAccessControl(getSession());
+      const updatedSession = getSession();
+      applyAccessControl(updatedSession);
       renderCars();
+
+      // If a card was selected before relogin, republish data so iframe receives the new role.
+      if (lastSelectedVin) {
+        openDrawer(lastSelectedVin);
+      }
 
       setTimeout(() => {
         hideLogin();
